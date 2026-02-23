@@ -1,13 +1,12 @@
 package org.com.story.repository;
 
-import org.com.story.entity.Role;
+import org.com.story.entity.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface RoleRepository extends JpaRepository<Role, Long> {
-
-    Optional<Role> findByName(String name);
+public interface CategoryRepository extends JpaRepository<Category, Long> {
+    Optional<Category> findByName(String name);
 }

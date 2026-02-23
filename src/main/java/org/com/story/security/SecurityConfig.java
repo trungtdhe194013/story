@@ -34,8 +34,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                // ✅ CORS
-                .cors(cors -> cors.disable())
+                // ✅ CORS - ENABLE for ngrok
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // ❌ CSRF
                 .csrf(csrf -> csrf.disable())
@@ -59,6 +59,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // Allow root path and error page
+                        .requestMatchers("/", "/error", "/favicon.ico").permitAll()
+
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -70,8 +73,17 @@ public class SecurityConfig {
                                 "/api/health"
                         ).permitAll()
 
+                        // Public read access to stories and chapters
+                        .requestMatchers(HttpMethod.GET, "/api/stories", "/api/stories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/chapters/**").permitAll()
+
+                        // Admin endpoints - ADMIN only
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")
+
+                        // Reviewer endpoints - REVIEWER and ADMIN
+                        .requestMatchers("/api/reviewer/**")
+                        .hasAnyRole("REVIEWER", "ADMIN")
 
                         .anyRequest().authenticated()
                 )
@@ -94,27 +106,26 @@ public class SecurityConfig {
     }
 
     // ===============================
-    // CORS CONFIG – FIX PREFLIGHT
+    // CORS CONFIG – FIX PREFLIGHT & NGROK
     // ===============================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
+        // Allow all origins including ngrok
         config.setAllowedOriginPatterns(List.of("*"));
 
         config.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
         ));
 
-        config.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "Accept"
-        ));
+        config.setAllowedHeaders(List.of("*"));
 
-        config.setExposedHeaders(List.of("Authorization"));
+        config.setExposedHeaders(List.of("Authorization", "Content-Type"));
 
         config.setAllowCredentials(false);
+
+        config.setMaxAge(3600L); // Cache preflight response for 1 hour
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();

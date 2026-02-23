@@ -3,29 +3,18 @@ package org.com.story.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.ReviewStoryRequest;
-import org.com.story.dto.request.UpdateUserRoleRequest;
 import org.com.story.dto.response.StoryResponse;
-import org.com.story.dto.response.UserResponse;
 import org.com.story.service.AdminService;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/api/reviewer")
 @RequiredArgsConstructor
-public class AdminController {
+public class ReviewerController {
 
     private final AdminService adminService;
-
-    @GetMapping("/test")
-    public String test() {
-        System.out.println("Controller auth = "
-                + SecurityContextHolder.getContext().getAuthentication());
-
-        return "ADMIN OK";
-    }
 
     // Get all pending stories for review
     @GetMapping("/stories/pending")
@@ -34,25 +23,11 @@ public class AdminController {
         return adminService.getPendingStories();
     }
 
-    // Review story (approve/reject)
+    // Review story (approve/reject) - Same as admin but limited to story review only
     @PostMapping("/stories/{id}/review")
     public StoryResponse reviewStory(
             @PathVariable Long id,
             @Valid @RequestBody ReviewStoryRequest request) {
         return adminService.reviewStory(id, request);
     }
-
-    // Get all users
-    @GetMapping("/users")
-    public List<UserResponse> getAllUsers() {
-
-        return adminService.getAllUsers();
-    }
-
-    // Update user roles
-    @PutMapping("/users/roles")
-    public UserResponse updateUserRoles(@Valid @RequestBody UpdateUserRoleRequest request) {
-        return adminService.updateUserRoles(request);
-    }
 }
-

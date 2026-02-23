@@ -43,8 +43,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     newUser.setRoles(
                             Set.of(
                                     roleRepository
-                                            .findByName("USER")
-                                            .orElseThrow()
+                                            .findByName("READER")
+                                            .orElseThrow(() -> new IllegalStateException("Default role READER not found"))
                             )
                     );
 
