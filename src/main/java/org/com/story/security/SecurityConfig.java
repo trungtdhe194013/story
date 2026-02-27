@@ -69,7 +69,8 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/api/health"
+                                "/api/health",
+                                "/oauth2/**"
                         ).permitAll()
 
                         // Public read access to stories, chapters, categories, comments

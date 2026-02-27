@@ -42,8 +42,13 @@ public class OAuth2AuthenticationSuccessHandler
 
         String accessToken = jwtUtil.generateAccessToken(user.getEmail());
 
-        response.sendRedirect(
-                "http://localhost:3000/oauth2/success?token=" + accessToken
-        );
+        // Redirect về trang hiển thị token (dùng để test khi chưa có frontend)
+        // Khi có frontend thật, đổi lại thành: "http://localhost:3000/oauth2/success?token=" + accessToken
+        String frontendUrl = System.getenv("FRONTEND_URL");
+        String redirectUrl = (frontendUrl != null && !frontendUrl.isBlank())
+                ? frontendUrl + "/oauth2/success?token=" + accessToken
+                : "/api/auth/oauth2/success?token=" + accessToken;
+
+        response.sendRedirect(redirectUrl);
     }
 }
