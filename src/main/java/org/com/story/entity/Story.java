@@ -13,6 +13,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Entity
 @Table(name = "stories")
@@ -39,6 +40,16 @@ public class Story {
     private String coverUrl;
 
     private String status; // DRAFT, PENDING, APPROVED
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "story_categories",
+            joinColumns = @JoinColumn(name = "story_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> categories;
+
+    private Long viewCount = 0L;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

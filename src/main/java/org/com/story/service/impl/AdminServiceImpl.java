@@ -3,6 +3,7 @@ package org.com.story.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.ReviewStoryRequest;
 import org.com.story.dto.request.UpdateUserRoleRequest;
+import org.com.story.dto.response.DashboardStatsResponse;
 import org.com.story.dto.response.StoryResponse;
 import org.com.story.dto.response.UserResponse;
 import org.com.story.entity.AdminReview;
@@ -15,6 +16,11 @@ import org.com.story.repository.AdminReviewRepository;
 import org.com.story.repository.RoleRepository;
 import org.com.story.repository.StoryRepository;
 import org.com.story.repository.UserRepository;
+import org.com.story.repository.ChapterRepository;
+import org.com.story.repository.CommentRepository;
+import org.com.story.repository.CategoryRepository;
+import org.com.story.repository.ReportRepository;
+import org.com.story.repository.WithdrawRequestRepository;
 import org.com.story.service.AdminService;
 import org.com.story.service.UserService;
 import org.springframework.stereotype.Service;
@@ -34,6 +40,11 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserService userService;
+    private final ChapterRepository chapterRepository;
+    private final CommentRepository commentRepository;
+    private final CategoryRepository categoryRepository;
+    private final ReportRepository reportRepository;
+    private final WithdrawRequestRepository withdrawRequestRepository;
 
     @Override
     public List<StoryResponse> getPendingStories() {
@@ -102,6 +113,21 @@ public class AdminServiceImpl implements AdminService {
                 .stream()
                 .map(this::mapUserToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DashboardStatsResponse getDashboardStats() {
+        return DashboardStatsResponse.builder()
+                .totalUsers(userRepository.count())
+                .totalStories(storyRepository.count())
+                .totalChapters(chapterRepository.count())
+                .pendingStories(storyRepository.findByStatus("PENDING").size())
+                .pendingReports(reportRepository.findByStatus("PENDING").size())
+                .pendingWithdrawRequests(withdrawRequestRepository.findByStatus("PENDING").size())
+                .totalCategories(categoryRepository.count())
+                .totalComments(commentRepository.count())
+                .build();
     }
 
     private StoryResponse mapStoryToResponse(Story story) {

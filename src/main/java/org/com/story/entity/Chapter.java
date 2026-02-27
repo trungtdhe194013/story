@@ -38,6 +38,10 @@ public class Chapter {
 
     private String status; // DRAFT, SCHEDULED, PUBLISHED
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "editor_id")
+    private User editor;
+
     private LocalDateTime publishAt;
 
     @CreationTimestamp

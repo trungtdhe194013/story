@@ -2,6 +2,7 @@ package org.com.story.service;
 
 import org.com.story.dto.request.ReviewStoryRequest;
 import org.com.story.dto.request.UpdateUserRoleRequest;
+import org.com.story.dto.response.DashboardStatsResponse;
 import org.com.story.dto.response.StoryResponse;
 import org.com.story.dto.response.UserResponse;
 
@@ -15,4 +16,6 @@ public interface AdminService {
     UserResponse updateUserRoles(UpdateUserRoleRequest request);
 
     List<UserResponse> getAllUsers();
+
+    DashboardStatsResponse getDashboardStats();
 }

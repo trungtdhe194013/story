@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
@@ -18,4 +19,15 @@ public class UserResponse {
     private Set<String> roles;
     private String provider;
     private Boolean enabled;
+
+    // Wallet info
+    private Long walletBalance;
+
+    // Stats
+    private Integer totalFollowedStories;
+    private Integer totalPurchasedChapters;
+
+    // Timestamps
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

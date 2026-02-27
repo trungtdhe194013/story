@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Configuration
@@ -25,6 +26,8 @@ public class DataInitializer {
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
     private final CommentRepository commentRepository;
+    private final WalletRepository walletRepository;
+    private final MissionRepository missionRepository;
 
     @Bean
     CommandLineRunner initData() {
@@ -58,6 +61,12 @@ public class DataInitializer {
 
             // Tạo comments
             createComments(chapters, reader1, reader2, reader3);
+
+            // Tạo wallets cho users
+            createWallets(List.of(admin, author1, author2, author3, reader1, reader2, reader3, reviewer, editor));
+
+            // Tạo missions
+            createMissions();
 
             System.out.println("==============================================");
             System.out.println("✅ DEMO DATA CREATED SUCCESSFULLY!");
@@ -159,7 +168,7 @@ public class DataInitializer {
             "APPROVED"));
 
         // Loại bỏ các story null
-        stories.removeIf(story -> story == null);
+        stories.removeIf(Objects::isNull);
 
         System.out.println("📚 Đã tạo " + stories.size() + " stories");
         return stories;
@@ -230,13 +239,18 @@ public class DataInitializer {
 
     private String generateChapterContent(String storyTitle, int chapterNum) {
         return String.format(
-            "Đây là nội dung của chương %d trong câu chuyện '%s'.\n\n" +
-            "Câu chuyện đang dần dần hấp dẫn hơn. Nhân vật chính đang phải đối mặt với những thử thách mới. " +
-            "Những bí mật từ quá khứ đang dần được hé lộ.\n\n" +
-            "Trong chương này, độc giả sẽ được khám phá thêm về thế giới và các nhân vật. " +
-            "Những diễn biến bất ngờ sẽ làm cho câu chuyện trở nên kịch tính hơn bao giờ hết.\n\n" +
-            "Hãy tiếp tục theo dõi để biết những gì sẽ xảy ra tiếp theo!\n\n" +
-            "[Nội dung đầy đủ của chương %d...]",
+                """
+                        Đây là nội dung của chương %d trong câu chuyện '%s'.
+                        
+                        Câu chuyện đang dần dần hấp dẫn hơn. Nhân vật chính đang phải đối mặt với những thử thách mới. \
+                        Những bí mật từ quá khứ đang dần được hé lộ.
+                        
+                        Trong chương này, độc giả sẽ được khám phá thêm về thế giới và các nhân vật. \
+                        Những diễn biến bất ngờ sẽ làm cho câu chuyện trở nên kịch tính hơn bao giờ hết.
+                        
+                        Hãy tiếp tục theo dõi để biết những gì sẽ xảy ra tiếp theo!
+                        
+                        [Nội dung đầy đủ của chương %d...]""",
             chapterNum, storyTitle, chapterNum
         );
     }
@@ -275,5 +289,42 @@ public class DataInitializer {
                 commentRepository.save(comment);
             }
         }
+    }
+
+    private void createWallets(List<User> users) {
+        for (User user : users) {
+            if (walletRepository.findByUserId(user.getId()).isEmpty()) {
+                // Re-fetch user để có managed entity, tránh lỗi detached entity
+                User managedUser = userRepository.findById(user.getId())
+                        .orElseThrow(() -> new RuntimeException("User not found: " + user.getId()));
+                Wallet wallet = new Wallet();
+                wallet.setUser(managedUser);
+                // Readers get 500 coins, Authors get 1000, Admin gets 9999, Reviewer/Editor get 500
+                boolean isAdmin = user.getRoles().stream().anyMatch(r -> r.getName().equals("ADMIN"));
+                boolean isAuthor = user.getRoles().stream().anyMatch(r -> r.getName().equals("AUTHOR"));
+                wallet.setBalance(isAdmin ? 9999L : isAuthor ? 1000L : 500L);
+                walletRepository.save(wallet);
+            }
+        }
+        System.out.println("💰 Đã tạo wallets cho " + users.size() + " users");
+    }
+
+    private void createMissions() {
+        if (missionRepository.count() == 0) {
+            missionRepository.save(createMission("Đăng nhập hàng ngày", 10L, "DAILY"));
+            missionRepository.save(createMission("Đọc 1 chương truyện", 5L, "READ"));
+            missionRepository.save(createMission("Đọc 5 chương truyện", 20L, "READ"));
+            missionRepository.save(createMission("Bình luận 1 chương", 5L, "DAILY"));
+            missionRepository.save(createMission("Theo dõi 1 truyện mới", 10L, "DAILY"));
+            System.out.println("🎯 Đã tạo 5 missions");
+        }
+    }
+
+    private Mission createMission(String name, Long reward, String type) {
+        Mission mission = new Mission();
+        mission.setName(name);
+        mission.setRewardCoin(reward);
+        mission.setType(type);
+        return mission;
     }
 }

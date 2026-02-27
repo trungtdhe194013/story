@@ -10,6 +10,7 @@ import lombok.*;
 import org.com.story.common.AuthProvider;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+@Entity
 @Table(name = "missions")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor

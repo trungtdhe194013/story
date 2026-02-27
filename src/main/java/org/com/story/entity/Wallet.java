@@ -20,10 +20,11 @@ import java.time.LocalDateTime;
 public class Wallet {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
-    @MapsId
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true, nullable = false)
     private User user;
 
     private Long balance = 0L;

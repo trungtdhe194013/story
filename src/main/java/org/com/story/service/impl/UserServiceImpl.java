@@ -3,6 +3,7 @@ package org.com.story.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.com.story.common.AuthProvider;
 import org.com.story.dto.request.SignUpRequest;
+import org.com.story.dto.request.UpdateProfileRequest;
 import org.com.story.dto.response.UserResponse;
 import org.com.story.entity.Role;
 import org.com.story.entity.User;
@@ -12,6 +13,7 @@ import org.com.story.exception.BadRequestException;
 import org.com.story.repository.RoleRepository;
 import org.com.story.repository.UserRepository;
 import org.com.story.repository.VerificationTokenRepository;
+import org.com.story.repository.WalletRepository;
 import org.com.story.service.MailService;
 import org.com.story.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +39,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final VerificationTokenRepository verificationTokenRepository;
     private final MailService mailService;
+    private final WalletRepository walletRepository;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -78,6 +81,22 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserResponse updateProfile(UpdateProfileRequest request) {
+        User currentUser = getCurrentUser();
+
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
+            currentUser.setFullName(request.getFullName());
+        }
+
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            currentUser.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        User updatedUser = userRepository.save(currentUser);
+        return mapToResponse(updatedUser);
+    }
+
+    @Override
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -97,6 +116,13 @@ public class UserServiceImpl implements UserService {
     }
 
     private UserResponse mapToResponse(User user) {
+        Long walletBalance = walletRepository.findByUserId(user.getId())
+                .map(w -> w.getBalance())
+                .orElse(0L);
+
+        int followedStories = (user.getFollowedStories() != null) ? user.getFollowedStories().size() : 0;
+        int purchasedChapters = (user.getPurchasedChapters() != null) ? user.getPurchasedChapters().size() : 0;
+
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -106,6 +132,11 @@ public class UserServiceImpl implements UserService {
                         .collect(Collectors.toSet()))
                 .provider(user.getProvider().name())
                 .enabled(user.getEnabled())
+                .walletBalance(walletBalance)
+                .totalFollowedStories(followedStories)
+                .totalPurchasedChapters(purchasedChapters)
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .build();
     }
 

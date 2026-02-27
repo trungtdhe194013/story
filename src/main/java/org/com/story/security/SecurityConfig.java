@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -73,9 +72,13 @@ public class SecurityConfig {
                                 "/api/health"
                         ).permitAll()
 
-                        // Public read access to stories and chapters
+                        // Public read access to stories, chapters, categories, comments
                         .requestMatchers(HttpMethod.GET, "/api/stories", "/api/stories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/chapters/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/comments/chapter/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/missions").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/gifts/story/**").permitAll()
 
                         // Admin endpoints - ADMIN only
                         .requestMatchers("/api/admin/**")
@@ -85,6 +88,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/reviewer/**")
                         .hasAnyRole("REVIEWER", "ADMIN")
 
+                        // Editor endpoints - EDITOR and ADMIN
+                        .requestMatchers("/api/editor/**")
+                        .hasAnyRole("EDITOR", "ADMIN")
+
+                        // Category management (POST/PUT/DELETE) - ADMIN only
+                        .requestMatchers(HttpMethod.POST, "/api/categories").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
+
+                        // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
 
