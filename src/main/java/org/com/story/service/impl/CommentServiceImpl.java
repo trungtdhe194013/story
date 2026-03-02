@@ -38,22 +38,19 @@ public class CommentServiceImpl implements CommentService {
 
         Comment comment = new Comment();
         comment.setUser(currentUser);
-        comment.setChapter(chapter);
         comment.setContent(request.getContent());
+        comment.setChapter(chapter);
 
-        // Nếu là reply
         if (request.getParentId() != null) {
             Comment parent = commentRepository.findById(request.getParentId())
                     .orElseThrow(() -> new NotFoundException("Parent comment not found"));
-
-            if (!parent.getChapter().getId().equals(chapter.getId())) {
+            if (parent.getChapter() == null || !parent.getChapter().getId().equals(chapter.getId())) {
                 throw new BadRequestException("Parent comment does not belong to this chapter");
             }
             comment.setParent(parent);
         }
 
-        Comment savedComment = commentRepository.save(comment);
-        return mapToResponse(savedComment);
+        return mapToResponse(commentRepository.save(comment));
     }
 
     @Override
@@ -61,11 +58,8 @@ public class CommentServiceImpl implements CommentService {
     public List<CommentResponse> getCommentsByChapter(Long chapterId) {
         chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new NotFoundException("Chapter not found"));
-
-        // Lấy comment gốc (không có parent)
-        List<Comment> rootComments = commentRepository.findByChapterIdAndParentIsNull(chapterId);
-
-        return rootComments.stream()
+        return commentRepository.findByChapterIdAndParentIsNull(chapterId)
+                .stream()
                 .map(this::mapToResponseWithReplies)
                 .collect(Collectors.toList());
     }
@@ -73,11 +67,9 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public void deleteComment(Long id) {
         User currentUser = userService.getCurrentUser();
-
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Comment not found"));
 
-        // Chỉ cho phép xóa comment của chính mình hoặc admin
         boolean isOwner = comment.getUser().getId().equals(currentUser.getId());
         boolean isAdmin = currentUser.getRoles().stream()
                 .anyMatch(r -> r.getName().equals("ADMIN"));
@@ -85,14 +77,18 @@ public class CommentServiceImpl implements CommentService {
         if (!isOwner && !isAdmin) {
             throw new UnauthorizedException("You don't have permission to delete this comment");
         }
-
         commentRepository.delete(comment);
     }
 
     private CommentResponse mapToResponse(Comment comment) {
+        Chapter chapter = comment.getChapter();
         return CommentResponse.builder()
                 .id(comment.getId())
-                .chapterId(comment.getChapter().getId())
+                .chapterId(chapter.getId())
+                .chapterTitle(chapter.getTitle())
+                .chapterOrder(chapter.getChapterOrder())
+                .storyId(chapter.getStory().getId())
+                .storyTitle(chapter.getStory().getTitle())
                 .userId(comment.getUser().getId())
                 .userName(comment.getUser().getFullName())
                 .content(comment.getContent())
@@ -103,17 +99,12 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private CommentResponse mapToResponseWithReplies(Comment comment) {
-        // Lấy tất cả replies của comment
         List<Comment> replies = commentRepository.findByChapterId(comment.getChapter().getId())
                 .stream()
                 .filter(c -> c.getParent() != null && c.getParent().getId().equals(comment.getId()))
                 .collect(Collectors.toList());
-
         CommentResponse response = mapToResponse(comment);
-        response.setReplies(replies.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList()));
-
+        response.setReplies(replies.stream().map(this::mapToResponse).collect(Collectors.toList()));
         return response;
     }
 }

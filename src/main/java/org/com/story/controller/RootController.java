@@ -1,11 +1,13 @@
 package org.com.story.controller;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Hidden
 /**
  * Root Controller - Welcome page for API
  * Useful when accessing via ngrok or direct URL

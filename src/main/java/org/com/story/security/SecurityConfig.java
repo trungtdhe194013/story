@@ -39,9 +39,9 @@ public class SecurityConfig {
                 // ❌ CSRF
                 .csrf(csrf -> csrf.disable())
 
-                // ❌ Session
+                // Session: STATELESS cho API, nhưng OAuth2 cần session tạm để xử lý authorization code flow
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
 
                 // ❌ Unauthorized handler (KHÔNG redirect)

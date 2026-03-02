@@ -7,12 +7,12 @@ import lombok.Data;
 @Data
 public class CommentRequest {
 
-    @NotNull(message = "Chapter ID is required")
+    @NotNull(message = "chapterId is required")
     private Long chapterId;
+
 
     @NotBlank(message = "Content is required")
     private String content;
 
-    private Long parentId; // null nếu là comment gốc, có giá trị nếu là reply
+    private Long parentId; // null → comment gốc, có giá trị → reply
 }
-

@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -19,6 +20,14 @@ public class UserResponse {
     private Set<String> roles;
     private String provider;
     private Boolean enabled;
+
+    // Extended profile
+    private String avatarUrl;
+    private String bio;
+    private String phone;
+    private LocalDate dateOfBirth;
+    private String gender;
+    private String location;
 
     // Wallet info
     private Long walletBalance;

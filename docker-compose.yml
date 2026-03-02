@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: story_db
+    environment:
+      POSTGRES_DB: story_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d story_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: story_app
+    ports:
+      - "8080:8080"
+    environment:
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/story_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin
+      # JPA
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # App
+      APP_BASE_URL: http://localhost:8080
+      # Mail (thay bằng thông tin thật nếu cần)
+      SPRING_MAIL_USERNAME: quotopo@gmail.com
+      SPRING_MAIL_PASSWORD: mxjlxlygvrmcqyim
+      # OAuth2 Google (thay bằng client id/secret thật)
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: YOUR_GOOGLE_CLIENT_ID
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: YOUR_GOOGLE_CLIENT_SECRET
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  postgres_data:
+

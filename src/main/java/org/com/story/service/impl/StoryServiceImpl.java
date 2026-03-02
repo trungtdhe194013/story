@@ -2,12 +2,12 @@ package org.com.story.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.StoryRequest;
-import org.com.story.dto.response.StoryResponse;
-import org.com.story.entity.Story;
-import org.com.story.entity.User;
+import org.com.story.dto.response.*;
+import org.com.story.entity.*;
 import org.com.story.exception.BadRequestException;
 import org.com.story.exception.NotFoundException;
 import org.com.story.exception.UnauthorizedException;
+import org.com.story.repository.ChapterRepository;
 import org.com.story.repository.StoryRepository;
 import org.com.story.service.StoryService;
 import org.com.story.service.UserService;
@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class StoryServiceImpl implements StoryService {
 
     private final StoryRepository storyRepository;
+    private final ChapterRepository chapterRepository;
     private final UserService userService;
 
     @Override
@@ -64,20 +65,71 @@ public class StoryServiceImpl implements StoryService {
     }
 
     @Override
-    public List<StoryResponse> getAllPublishedStories() {
-        return storyRepository.findAllPublished()
-                .stream()
-                .map(this::mapToResponse)
+    @Transactional(readOnly = true)
+    public StoryDetailResponse getStoryDetail(Long id) {
+        Story story = storyRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Story not found"));
+
+        if (!"APPROVED".equals(story.getStatus())) {
+            User currentUser = null;
+            try { currentUser = userService.getCurrentUser(); } catch (Exception ignored) {}
+            if (currentUser == null || !story.getAuthor().getId().equals(currentUser.getId())) {
+                throw new UnauthorizedException("You don't have permission to view this story");
+            }
+        }
+
+        // Lấy currentUser để check isPurchased
+        User currentUser = null;
+        try { currentUser = userService.getCurrentUser(); } catch (Exception ignored) {}
+        final User finalCurrentUser = currentUser;
+
+        // Danh sách chương PUBLISHED (tóm tắt, không có content)
+        List<Chapter> chapters = chapterRepository.findPublishedByStoryId(id);
+        List<ChapterSummaryResponse> chapterSummaries = chapters.stream()
+                .map(ch -> ChapterSummaryResponse.builder()
+                        .id(ch.getId())
+                        .title(ch.getTitle())
+                        .chapterOrder(ch.getChapterOrder())
+                        .coinPrice(ch.getCoinPrice())
+                        .status(ch.getStatus())
+                        .publishAt(ch.getPublishAt())
+                        .isPurchased(finalCurrentUser != null &&
+                                finalCurrentUser.getPurchasedChapters().contains(ch))
+                        .build())
                 .collect(Collectors.toList());
+
+        // Comment tổng quan của truyện (story-level, chapterId = null)
+        // Đã bỏ - chỉ còn comment theo từng chapter
+
+        return StoryDetailResponse.builder()
+                .id(story.getId())
+                .title(story.getTitle())
+                .summary(story.getSummary())
+                .coverUrl(story.getCoverUrl())
+                .status(story.getStatus())
+                .authorId(story.getAuthor().getId())
+                .authorName(story.getAuthor().getFullName())
+                .viewCount(story.getViewCount())
+                .categories(story.getCategories().stream()
+                        .map(Category::getName).collect(Collectors.toSet()))
+                .createdAt(story.getCreatedAt())
+                .updatedAt(story.getUpdatedAt())
+                .chapters(chapterSummaries)
+                .totalChapters(chapterSummaries.size())
+                .build();
+    }
+
+    @Override
+    public List<StoryResponse> getAllPublishedStories() {
+        return storyRepository.findAllPublished().stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
     }
 
     @Override
     public List<StoryResponse> getMyStories() {
         User currentUser = userService.getCurrentUser();
-        return storyRepository.findByAuthorId(currentUser.getId())
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        return storyRepository.findByAuthorId(currentUser.getId()).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
     }
 
     @Override
@@ -87,21 +139,18 @@ public class StoryServiceImpl implements StoryService {
                 .orElseThrow(() -> new NotFoundException("Story not found"));
 
         // Check ownership
-        if (!story.getAuthor().getId().equals(currentUser.getId())) {
+        if (!story.getAuthor().getId().equals(currentUser.getId()))
             throw new UnauthorizedException("You don't have permission to update this story");
-        }
 
         // Can only update if DRAFT or REJECTED
-        if ("PENDING".equals(story.getStatus()) || "APPROVED".equals(story.getStatus())) {
+        if ("PENDING".equals(story.getStatus()) || "APPROVED".equals(story.getStatus()))
             throw new BadRequestException("Cannot update story in " + story.getStatus() + " status");
-        }
 
         story.setTitle(request.getTitle());
         story.setSummary(request.getSummary());
         story.setCoverUrl(request.getCoverUrl());
 
-        Story updatedStory = storyRepository.save(story);
-        return mapToResponse(updatedStory);
+        return mapToResponse(storyRepository.save(story));
     }
 
     @Override
@@ -111,14 +160,12 @@ public class StoryServiceImpl implements StoryService {
                 .orElseThrow(() -> new NotFoundException("Story not found"));
 
         // Check ownership
-        if (!story.getAuthor().getId().equals(currentUser.getId())) {
+        if (!story.getAuthor().getId().equals(currentUser.getId()))
             throw new UnauthorizedException("You don't have permission to delete this story");
-        }
 
         // Can only delete if DRAFT
-        if (!"DRAFT".equals(story.getStatus())) {
+        if (!"DRAFT".equals(story.getStatus()))
             throw new BadRequestException("Can only delete stories in DRAFT status");
-        }
 
         storyRepository.delete(story);
     }
@@ -130,30 +177,22 @@ public class StoryServiceImpl implements StoryService {
                 .orElseThrow(() -> new NotFoundException("Story not found"));
 
         // Check ownership
-        if (!story.getAuthor().getId().equals(currentUser.getId())) {
+        if (!story.getAuthor().getId().equals(currentUser.getId()))
             throw new UnauthorizedException("You don't have permission to submit this story");
-        }
 
         // Can only submit if DRAFT
-        if (!"DRAFT".equals(story.getStatus())) {
+        if (!"DRAFT".equals(story.getStatus()))
             throw new BadRequestException("Can only submit stories in DRAFT status");
-        }
 
         story.setStatus("PENDING");
-        Story updatedStory = storyRepository.save(story);
-        return mapToResponse(updatedStory);
+        return mapToResponse(storyRepository.save(story));
     }
 
     @Override
     public List<StoryResponse> searchStories(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return getAllPublishedStories();
-        }
-
-        return storyRepository.searchPublished(keyword)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        if (keyword == null || keyword.trim().isEmpty()) return getAllPublishedStories();
+        return storyRepository.searchPublished(keyword).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
     }
 
     private StoryResponse mapToResponse(Story story) {

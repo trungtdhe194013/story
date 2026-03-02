@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface UserMissionRepository extends JpaRepository<UserMission, Long> {
     List<UserMission> findByUserId(Long userId);
+    List<UserMission> findByMissionId(Long missionId);
     Optional<UserMission> findByUserIdAndMissionId(Long userId, Long missionId);
     boolean existsByUserIdAndMissionIdAndCompletedTrue(Long userId, Long missionId);
 }

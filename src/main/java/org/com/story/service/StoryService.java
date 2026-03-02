@@ -1,6 +1,7 @@
 package org.com.story.service;
 
 import org.com.story.dto.request.StoryRequest;
+import org.com.story.dto.response.StoryDetailResponse;
 import org.com.story.dto.response.StoryResponse;
 
 import java.util.List;
@@ -9,6 +10,8 @@ public interface StoryService {
     StoryResponse createStory(StoryRequest request);
 
     StoryResponse getStory(Long id);
+
+    StoryDetailResponse getStoryDetail(Long id);
 
     List<StoryResponse> getAllPublishedStories();
 

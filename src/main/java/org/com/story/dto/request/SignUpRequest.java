@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import org.com.story.validation.PasswordMatches;
 
+import java.time.LocalDate;
+
 @Data
 @PasswordMatches(message = "Password and Confirm Password do not match")
 public class SignUpRequest {
@@ -34,4 +36,15 @@ public class SignUpRequest {
         message = "Full name must contain only letters and spaces"
     )
     private String fullName;
+
+    @Pattern(regexp = "^(\\+84|0)[3-9]\\d{8}$", message = "Invalid Vietnamese phone number")
+    private String phone;
+
+    private LocalDate dateOfBirth;
+
+    @Pattern(regexp = "^(MALE|FEMALE|OTHER)$", message = "Gender must be MALE, FEMALE or OTHER")
+    private String gender;
+
+    @Size(max = 100, message = "Location must not exceed 100 characters")
+    private String location;
 }

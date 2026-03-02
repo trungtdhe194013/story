@@ -43,6 +43,23 @@ public class User {
 
     private Boolean enabled = true;
 
+    // Extended profile fields
+    private String avatarUrl;
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
+    @Column(length = 20)
+    private String phone;
+
+    private java.time.LocalDate dateOfBirth;
+
+    @Column(length = 10)
+    private String gender; // MALE, FEMALE, OTHER
+
+    @Column(length = 100)
+    private String location;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

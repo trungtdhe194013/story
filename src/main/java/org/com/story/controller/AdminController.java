@@ -1,5 +1,6 @@
 package org.com.story.controller;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,6 +36,7 @@ public class AdminController {
         return adminService.getDashboardStats();
     }
 
+    @Hidden
     @GetMapping("/test")
     public String test() {
         System.out.println("Controller auth = "

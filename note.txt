@@ -1,0 +1,29 @@
+docker run -d -p 8080:8080 digitalpublishing
+docker run -p 8088:8080 digitalpublishing
+
+Đây là một tình huống rất phổ biến khi mới làm quen với Docker. Vấn đề nằm ở chỗ: Khi ứng dụng Spring chạy bên trong một Docker Container, nó coi "localhost" chính là bản thân cái container đó, chứ không phải máy tính (Host) của bạn
+
+Đối với Windows hoặc macOS (Docker Desktop)
+Docker cung cấp một DNS đặc biệt để trỏ ngược về máy chủ vật lý:
+URL: jdbc:mysql://host.docker.internal:3306/ten_database
+
+Đây. Bước m vừa làm là docker đang chạy rồi. Giờ chỉ cần gõ ngrok thôi là tg kia ghép được, không cần run project nữa
+
+docker run -d -p 8080:8080 \
+  -e DB_HOST=host.docker.internal \
+  -e DB_USER=your_user \
+  -e DB_PASS=your_password \
+  my-spring-app
+
+- Chạy thử coi có lên được không
+- Build project (Mở maven IntelliJ, chạy lệnh có -DskipTests) => Build file jar
+- Build image => Đóng gói phần mềm
+docker build -t digitalpublishing .
+- Run container
+docker run -p 8088:8080 digitalpublishing => Dừng: Ctrl + C
+docker run -d -p 8088:8080 digitalpublishing=> Dừng: docker rm -f 7412ef6a7a37
+=> Kiểm tra: docker ps
+=> Không có chi là ok. Nếu không OK =>  (có -d mới cần dùng cách này)
+=> Run lại được project
+
+- Cuối cùng: Chạy ngrok cổng 8088

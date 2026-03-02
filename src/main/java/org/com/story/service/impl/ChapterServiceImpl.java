@@ -3,6 +3,8 @@ package org.com.story.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.ChapterRequest;
 import org.com.story.dto.response.ChapterResponse;
+import org.com.story.dto.response.ChapterResponse;
+import org.com.story.dto.response.CommentResponse;
 import org.com.story.entity.Chapter;
 import org.com.story.entity.Story;
 import org.com.story.entity.User;
@@ -14,11 +16,14 @@ import org.com.story.repository.ChapterRepository;
 import org.com.story.repository.StoryRepository;
 import org.com.story.repository.WalletRepository;
 import org.com.story.service.ChapterService;
+import org.com.story.service.CommentService;
 import org.com.story.service.UserService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,6 +36,8 @@ public class ChapterServiceImpl implements ChapterService {
     private final StoryRepository storyRepository;
     private final WalletRepository walletRepository;
     private final UserService userService;
+    @Lazy
+    private final CommentService commentService;
 
     @Override
     public ChapterResponse createChapter(Long storyId, ChapterRequest request) {
@@ -53,7 +60,7 @@ public class ChapterServiceImpl implements ChapterService {
         chapter.setPublishAt(request.getPublishAt());
 
         Chapter savedChapter = chapterRepository.save(chapter);
-        return mapToResponse(savedChapter, currentUser);
+        return mapToResponse(savedChapter, currentUser, Collections.emptyList());
     }
 
     @Override
@@ -82,12 +89,14 @@ public class ChapterServiceImpl implements ChapterService {
 
         if (!isAuthor && !isFree && !isPurchased) {
             // Return chapter without content
-            ChapterResponse response = mapToResponse(chapter, currentUser);
+            ChapterResponse response = mapToResponse(chapter, currentUser, Collections.emptyList());
             response.setContent("[Locked] Purchase this chapter to read");
             return response;
         }
 
-        return mapToResponse(chapter, currentUser);
+        // Load comments của chapter này
+        List<CommentResponse> comments = commentService.getCommentsByChapter(id);
+        return mapToResponse(chapter, currentUser, comments);
     }
 
     @Override
@@ -115,7 +124,7 @@ public class ChapterServiceImpl implements ChapterService {
 
         User finalCurrentUser = currentUser;
         return chapters.stream()
-                .map(chapter -> mapToResponse(chapter, finalCurrentUser))
+                .map(chapter -> mapToResponse(chapter, finalCurrentUser, Collections.emptyList()))
                 .collect(Collectors.toList());
     }
 
@@ -137,7 +146,7 @@ public class ChapterServiceImpl implements ChapterService {
         chapter.setPublishAt(request.getPublishAt());
 
         Chapter updatedChapter = chapterRepository.save(chapter);
-        return mapToResponse(updatedChapter, currentUser);
+        return mapToResponse(updatedChapter, currentUser, Collections.emptyList());
     }
 
     @Override
@@ -162,16 +171,19 @@ public class ChapterServiceImpl implements ChapterService {
 
         // Check ownership
         if (!chapter.getStory().getAuthor().getId().equals(currentUser.getId())) {
-            throw new UnauthorizedException("You don't have permission to publish this chapter");
+            throw new UnauthorizedException("You don't have permission to submit this chapter");
         }
 
-        chapter.setStatus("PUBLISHED");
-        if (chapter.getPublishAt() == null) {
-            chapter.setPublishAt(LocalDateTime.now());
+        // Chỉ cho phép submit từ DRAFT hoặc EDITED
+        if (!"DRAFT".equals(chapter.getStatus()) && !"EDITED".equals(chapter.getStatus())) {
+            throw new BadRequestException("Only DRAFT or EDITED chapters can be submitted for review. Current status: " + chapter.getStatus());
         }
 
-        Chapter publishedChapter = chapterRepository.save(chapter);
-        return mapToResponse(publishedChapter, currentUser);
+        // Author chỉ được submit lên PENDING_REVIEW, chờ reviewer duyệt
+        chapter.setStatus("PENDING_REVIEW");
+
+        Chapter updatedChapter = chapterRepository.save(chapter);
+        return mapToResponse(updatedChapter, currentUser, Collections.emptyList());
     }
 
     @Override
@@ -218,10 +230,10 @@ public class ChapterServiceImpl implements ChapterService {
         authorWallet.setBalance(authorWallet.getBalance() + chapter.getCoinPrice());
         walletRepository.save(authorWallet);
 
-        return mapToResponse(chapter, currentUser);
+        return mapToResponse(chapter, currentUser, Collections.emptyList());
     }
 
-    private ChapterResponse mapToResponse(Chapter chapter, User currentUser) {
+    private ChapterResponse mapToResponse(Chapter chapter, User currentUser, List<CommentResponse> comments) {
         boolean isPurchased = currentUser != null &&
                               currentUser.getPurchasedChapters().contains(chapter);
 
@@ -238,6 +250,8 @@ public class ChapterServiceImpl implements ChapterService {
                 .createdAt(chapter.getCreatedAt())
                 .updatedAt(chapter.getUpdatedAt())
                 .isPurchased(isPurchased)
+                .comments(comments)
+                .totalComments(comments != null ? comments.size() : 0)
                 .build();
     }
 }

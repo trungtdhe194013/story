@@ -14,12 +14,20 @@ import java.util.List;
 @AllArgsConstructor
 public class CommentResponse {
     private Long id;
+
+    // Thông tin chapter
     private Long chapterId;
+    private String chapterTitle;
+    private Integer chapterOrder;
+    private Long storyId;
+    private String storyTitle;
+
+    // Thông tin người comment
     private Long userId;
     private String userName;
+
     private String content;
     private Long parentId;
     private List<CommentResponse> replies;
     private LocalDateTime createdAt;
 }
-

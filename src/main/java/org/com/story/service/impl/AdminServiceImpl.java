@@ -1,12 +1,15 @@
 package org.com.story.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.com.story.dto.request.ReviewChapterRequest;
 import org.com.story.dto.request.ReviewStoryRequest;
 import org.com.story.dto.request.UpdateUserRoleRequest;
+import org.com.story.dto.response.ChapterResponse;
 import org.com.story.dto.response.DashboardStatsResponse;
 import org.com.story.dto.response.StoryResponse;
 import org.com.story.dto.response.UserResponse;
 import org.com.story.entity.AdminReview;
+import org.com.story.entity.Chapter;
 import org.com.story.entity.Role;
 import org.com.story.entity.Story;
 import org.com.story.entity.User;
@@ -91,6 +94,53 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ChapterResponse> getPendingChaptersForReview() {
+        return chapterRepository.findByStatus("PENDING_REVIEW")
+                .stream()
+                .map(this::mapChapterToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ChapterResponse reviewChapter(Long chapterId, ReviewChapterRequest request) {
+        User currentUser = userService.getCurrentUser();
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new NotFoundException("Chapter not found"));
+
+        if (!"PENDING_REVIEW".equals(chapter.getStatus())) {
+            throw new BadRequestException("Chapter is not in PENDING_REVIEW status. Current status: " + chapter.getStatus());
+        }
+
+        if (!request.getAction().equals("APPROVE") && !request.getAction().equals("REJECT")) {
+            throw new BadRequestException("Action must be APPROVE or REJECT");
+        }
+
+        if ("APPROVE".equals(request.getAction())) {
+            chapter.setStatus("PUBLISHED");
+            if (chapter.getPublishAt() == null) {
+                chapter.setPublishAt(java.time.LocalDateTime.now());
+            }
+        } else {
+            // REJECT → trả về DRAFT để author sửa lại
+            chapter.setStatus("DRAFT");
+        }
+
+        chapterRepository.save(chapter);
+
+        // Ghi lại review record
+        AdminReview review = new AdminReview();
+        review.setAdmin(currentUser);
+        review.setTargetType("CHAPTER");
+        review.setTargetId(chapterId);
+        review.setAction(request.getAction());
+        review.setNote(request.getNote());
+        adminReviewRepository.save(review);
+
+        return mapChapterToResponse(chapter);
+    }
+
+    @Override
     public UserResponse updateUserRoles(UpdateUserRoleRequest request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new NotFoundException("User not found"));
@@ -127,6 +177,22 @@ public class AdminServiceImpl implements AdminService {
                 .pendingWithdrawRequests(withdrawRequestRepository.findByStatus("PENDING").size())
                 .totalCategories(categoryRepository.count())
                 .totalComments(commentRepository.count())
+                .build();
+    }
+
+    private ChapterResponse mapChapterToResponse(Chapter chapter) {
+        return ChapterResponse.builder()
+                .id(chapter.getId())
+                .storyId(chapter.getStory().getId())
+                .storyTitle(chapter.getStory().getTitle())
+                .title(chapter.getTitle())
+                .chapterOrder(chapter.getChapterOrder())
+                .coinPrice(chapter.getCoinPrice())
+                .status(chapter.getStatus())
+                .publishAt(chapter.getPublishAt())
+                .createdAt(chapter.getCreatedAt())
+                .updatedAt(chapter.getUpdatedAt())
+                .isPurchased(false)
                 .build();
     }
 

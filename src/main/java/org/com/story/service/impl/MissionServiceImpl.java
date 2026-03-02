@@ -60,6 +60,9 @@ public class MissionServiceImpl implements MissionService {
     public void deleteMission(Long id) {
         Mission mission = missionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Mission not found"));
+        // Xóa tất cả UserMission liên quan trước để tránh lỗi foreign key constraint
+        List<UserMission> userMissions = userMissionRepository.findByMissionId(id);
+        userMissionRepository.deleteAll(userMissions);
         missionRepository.delete(mission);
     }
 

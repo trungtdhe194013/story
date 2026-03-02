@@ -29,7 +29,11 @@ public class CommentController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create comment", description = "Tạo bình luận mới (parentId = null → comment gốc, có parentId → reply)",
+    @Operation(summary = "Create comment", description = """
+            Tạo bình luận cho chapter.
+            - `chapterId`: ID của chapter muốn bình luận (bắt buộc)
+            - `parentId`: null → comment gốc | có giá trị → reply vào comment khác
+            """,
             security = @SecurityRequirement(name = "bearerAuth"))
     public CommentResponse createComment(@Valid @RequestBody CommentRequest request) {
         return commentService.createComment(request);
