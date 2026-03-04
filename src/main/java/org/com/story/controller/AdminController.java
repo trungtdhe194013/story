@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.MissionRequest;
+import org.com.story.dto.request.ReviewRoleChangeRequest;
 import org.com.story.dto.request.ReviewStoryRequest;
 import org.com.story.dto.request.UpdateUserRoleRequest;
 import org.com.story.dto.response.*;
@@ -26,6 +27,7 @@ public class AdminController {
     private final ReportService reportService;
     private final WithdrawRequestService withdrawRequestService;
     private final MissionService missionService;
+    private final RoleChangeRequestService roleChangeRequestService;
 
     // ============== DASHBOARD ==============
 
@@ -152,6 +154,36 @@ public class AdminController {
             security = @SecurityRequirement(name = "bearerAuth"))
     public void deleteMission(@PathVariable Long id) {
         missionService.deleteMission(id);
+    }
+
+    // ============== ROLE CHANGE REQUESTS ==============
+
+    @GetMapping("/role-change-requests")
+    @Operation(summary = "Get all role change requests", description = "Xem tất cả yêu cầu đổi role",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<RoleChangeRequestResponse> getAllRoleChangeRequests() {
+        return roleChangeRequestService.getAllRequests();
+    }
+
+    @GetMapping("/role-change-requests/pending")
+    @Operation(summary = "Get pending role change requests", description = "Xem yêu cầu đổi role đang chờ duyệt",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<RoleChangeRequestResponse> getPendingRoleChangeRequests() {
+        return roleChangeRequestService.getRequestsByStatus("PENDING");
+    }
+
+    @PostMapping("/role-change-requests/review")
+    @Operation(
+        summary = "Review role change request",
+        description = """
+            Admin duyệt hoặc từ chối yêu cầu đổi role.
+            - `action`: `APPROVE` → xóa role cũ, gán role mới | `REJECT` → từ chối
+            - `adminNote`: ghi chú (tùy chọn)
+            """,
+        security = @SecurityRequirement(name = "bearerAuth"))
+    public RoleChangeRequestResponse reviewRoleChangeRequest(
+            @Valid @RequestBody ReviewRoleChangeRequest request) {
+        return roleChangeRequestService.reviewRequest(request);
     }
 }
 

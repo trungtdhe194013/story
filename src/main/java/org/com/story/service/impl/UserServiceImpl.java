@@ -277,8 +277,8 @@ public class UserServiceImpl implements UserService {
                 .map(Wallet::getBalance)
                 .orElse(0L);
 
-        int followedStories = (user.getFollowedStories() != null) ? user.getFollowedStories().size() : 0;
-        int purchasedChapters = (user.getPurchasedChapters() != null) ? user.getPurchasedChapters().size() : 0;
+        int followedStories = userRepository.countFollowedStories(user.getId());
+        int purchasedChapters = userRepository.countPurchasedChapters(user.getId());
 
         return UserResponse.builder()
                 .id(user.getId())

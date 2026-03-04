@@ -98,6 +98,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
 
+                        // Role change requests - user tự gửi & xem của mình
+                        .requestMatchers(HttpMethod.POST, "/api/role-change-requests").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/role-change-requests/my").authenticated()
+
                         // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
