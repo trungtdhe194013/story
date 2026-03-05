@@ -22,7 +22,7 @@ public class StoryDetailResponse {
     private Long authorId;
     private String authorName;
     private Long viewCount;
-    private Set<String> categories;
+    private Set<CategoryResponse> categories;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Data
 @Builder
@@ -19,6 +20,7 @@ public class StoryResponse {
     private String status;
     private Long authorId;
     private String authorName;
+    private Set<CategoryResponse> categories;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

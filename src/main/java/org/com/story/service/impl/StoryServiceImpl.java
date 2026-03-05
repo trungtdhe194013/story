@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -110,8 +111,13 @@ public class StoryServiceImpl implements StoryService {
                 .authorId(story.getAuthor().getId())
                 .authorName(story.getAuthor().getFullName())
                 .viewCount(story.getViewCount())
-                .categories(story.getCategories().stream()
-                        .map(Category::getName).collect(Collectors.toSet()))
+                .categories(story.getCategories() == null ? Set.of() :
+                        story.getCategories().stream()
+                                .map(c -> CategoryResponse.builder()
+                                        .id(c.getId())
+                                        .name(c.getName())
+                                        .build())
+                                .collect(Collectors.toSet()))
                 .createdAt(story.getCreatedAt())
                 .updatedAt(story.getUpdatedAt())
                 .chapters(chapterSummaries)
@@ -196,6 +202,14 @@ public class StoryServiceImpl implements StoryService {
     }
 
     private StoryResponse mapToResponse(Story story) {
+        Set<CategoryResponse> categories = story.getCategories() == null ? Set.of() :
+                story.getCategories().stream()
+                        .map(c -> CategoryResponse.builder()
+                                .id(c.getId())
+                                .name(c.getName())
+                                .build())
+                        .collect(Collectors.toSet());
+
         return StoryResponse.builder()
                 .id(story.getId())
                 .title(story.getTitle())
@@ -204,6 +218,7 @@ public class StoryServiceImpl implements StoryService {
                 .status(story.getStatus())
                 .authorId(story.getAuthor().getId())
                 .authorName(story.getAuthor().getFullName())
+                .categories(categories)
                 .createdAt(story.getCreatedAt())
                 .updatedAt(story.getUpdatedAt())
                 .build();

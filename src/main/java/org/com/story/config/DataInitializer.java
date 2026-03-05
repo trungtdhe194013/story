@@ -2,6 +2,7 @@ package org.com.story.config;
 
 import lombok.RequiredArgsConstructor;
 import org.com.story.common.AuthProvider;
+import org.com.story.common.ImageAssets;
 import org.com.story.entity.*;
 import org.com.story.repository.*;
 import org.springframework.boot.CommandLineRunner;
@@ -40,7 +41,8 @@ public class DataInitializer {
     @Bean
     CommandLineRunner initData() {
         return args -> {
-            // Tạo roles
+            // ✅ Cập nhật ảnh cũ (via.placeholder.com) sang ảnh thật
+            migrateImages();
             Role adminRole = createRoleIfNotExists("ADMIN");
             Role authorRole = createRoleIfNotExists("AUTHOR");
             Role readerRole = createRoleIfNotExists("READER");
@@ -141,6 +143,7 @@ public class DataInitializer {
                     user.setRoles(roles);
                     user.setEnabled(true);
                     user.setProvider(AuthProvider.LOCAL);
+                    user.setAvatarUrl(ImageAssets.randomUserAvatar());
                     return userRepository.save(user);
                 });
     }
@@ -226,7 +229,7 @@ public class DataInitializer {
             story.setStatus(status);
             story.setCategories(cats);
             story.setViewCount(viewCount);
-            story.setCoverUrl("https://via.placeholder.com/300x400?text=" + title.replaceAll(" ", "+"));
+            story.setCoverUrl(ImageAssets.randomStoryCover());
             return storyRepository.save(story);
         }
         return null;
@@ -685,5 +688,41 @@ public class DataInitializer {
         mission.setRewardCoin(reward);
         mission.setType(type);
         return mission;
+    }
+
+    /**
+     * Cập nhật cover_url của stories và avatar_url của users
+     * nếu đang dùng ảnh placeholder cũ hoặc chưa có ảnh.
+     */
+    private void migrateImages() {
+        // Update story covers
+        List<org.com.story.entity.Story> allStories = storyRepository.findAll();
+        int storiesUpdated = 0;
+        for (org.com.story.entity.Story story : allStories) {
+            String cover = story.getCoverUrl();
+            if (cover == null || cover.contains("via.placeholder.com") || cover.isBlank()) {
+                story.setCoverUrl(ImageAssets.randomStoryCover());
+                storyRepository.save(story);
+                storiesUpdated++;
+            }
+        }
+        if (storiesUpdated > 0) {
+            System.out.println("🖼️  Đã cập nhật cover cho " + storiesUpdated + " stories");
+        }
+
+        // Update user avatars
+        List<org.com.story.entity.User> allUsers = userRepository.findAll();
+        int usersUpdated = 0;
+        for (org.com.story.entity.User user : allUsers) {
+            String avatar = user.getAvatarUrl();
+            if (avatar == null || avatar.isBlank()) {
+                user.setAvatarUrl(ImageAssets.randomUserAvatar());
+                userRepository.save(user);
+                usersUpdated++;
+            }
+        }
+        if (usersUpdated > 0) {
+            System.out.println("👤 Đã cập nhật avatar cho " + usersUpdated + " users");
+        }
     }
 }
