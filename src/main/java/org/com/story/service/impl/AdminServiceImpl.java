@@ -29,6 +29,7 @@ import org.com.story.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -180,6 +181,29 @@ public class AdminServiceImpl implements AdminService {
                 .build();
     }
 
+    @Override
+    public UserResponse banUser(Long userId, int banDays) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        if (banDays == 0) {
+            throw new BadRequestException("banDays phải là -1 (vĩnh viễn) hoặc > 0");
+        }
+        if (banDays == -1) {
+            user.setBanUntil(LocalDateTime.of(9999, 12, 31, 23, 59, 59));
+        } else {
+            user.setBanUntil(LocalDateTime.now().plusDays(banDays));
+        }
+        return mapUserToResponse(userRepository.save(user));
+    }
+
+    @Override
+    public UserResponse unbanUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        user.setBanUntil(null);
+        return mapUserToResponse(userRepository.save(user));
+    }
+
     private ChapterResponse mapChapterToResponse(Chapter chapter) {
         return ChapterResponse.builder()
                 .id(chapter.getId())
@@ -220,6 +244,7 @@ public class AdminServiceImpl implements AdminService {
                         .collect(Collectors.toSet()))
                 .provider(user.getProvider().name())
                 .enabled(user.getEnabled())
+                .banUntil(user.getBanUntil())
                 .build();
     }
 }

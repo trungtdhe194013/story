@@ -60,6 +60,9 @@ public class User {
     @Column(length = 100)
     private String location;
 
+    // null = không bị ban, set giá trị = bị ban đến thời điểm đó
+    private LocalDateTime banUntil;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

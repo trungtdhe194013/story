@@ -32,6 +32,9 @@ public class UserResponse {
     // Wallet info
     private Long walletBalance;
 
+    // Ban info
+    private LocalDateTime banUntil; // null = không bị ban
+
     // Stats
     private Integer totalFollowedStories;
     private Integer totalPurchasedChapters;

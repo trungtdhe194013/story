@@ -37,6 +37,14 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(401, ex.getMessage()));
     }
 
+    // 403 - Account Banned
+    @ExceptionHandler(AccountBannedException.class)
+    public ResponseEntity<ApiResponse<?>> handleAccountBanned(AccountBannedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(403, ex.getMessage()));
+    }
+
     // AppException chung (fallback cho các AppException khác)
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResponse<?>> handleAppException(AppException ex) {

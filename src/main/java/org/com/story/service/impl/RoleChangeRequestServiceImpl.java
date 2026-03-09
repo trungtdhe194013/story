@@ -30,43 +30,56 @@ public class RoleChangeRequestServiceImpl implements RoleChangeRequestService {
     private final RoleRepository roleRepository;
     private final UserService userService;
 
-    // Danh sách role hợp lệ (không cho phép đổi thành ADMIN)
-    private static final Set<String> ALLOWED_ROLES = Set.of("READER", "AUTHOR", "EDITOR", "REVIEWER");
+    /**
+     * Role logic:
+     * - Mỗi user LUÔN có READER (base role).
+     * - Chỉ được thêm tối đa 1 role trong nhóm [AUTHOR, EDITOR, REVIEWER].
+     * - 3 role này exclusive với nhau (không có 2 cùng lúc).
+     * - Không được đổi thành ADMIN.
+     */
+    private static final Set<String> EXCLUSIVE_ROLES = Set.of("AUTHOR", "EDITOR", "REVIEWER");
 
     @Override
     public RoleChangeRequestResponse submitRequest(RoleChangeRequestDto request) {
         User currentUser = userService.getCurrentUser();
 
-        // Validate role hợp lệ
         String requestedRole = request.getRequestedRole().toUpperCase();
-        if (!ALLOWED_ROLES.contains(requestedRole)) {
-            throw new BadRequestException("Invalid role. Allowed roles: " + ALLOWED_ROLES);
+
+        // Chỉ cho phép đổi trong nhóm exclusive
+        if (!EXCLUSIVE_ROLES.contains(requestedRole)) {
+            throw new BadRequestException(
+                    "Chỉ có thể yêu cầu một trong các role: " + EXCLUSIVE_ROLES +
+                    ". READER là role mặc định và không thể thay đổi.");
         }
 
-        // Lấy role hiện tại của user (chỉ 1 role) - roles là EAGER nên OK
-        String currentRole = currentUser.getRoles().stream()
+        // Lấy các role hiện tại của user
+        Set<String> currentRoleNames = currentUser.getRoles().stream()
                 .map(Role::getName)
+                .collect(Collectors.toSet());
+
+        // Kiểm tra đã có role đó chưa
+        if (currentRoleNames.contains(requestedRole)) {
+            throw new BadRequestException("Bạn đã có role " + requestedRole + " rồi.");
+        }
+
+        // Xác định currentRole để hiển thị (ưu tiên role exclusive nếu có)
+        String currentExclusiveRole = currentRoleNames.stream()
+                .filter(EXCLUSIVE_ROLES::contains)
                 .findFirst()
                 .orElse("READER");
 
-        // Không cho đổi sang role giống role hiện tại
-        if (currentRole.equalsIgnoreCase(requestedRole)) {
-            throw new BadRequestException("You already have the role: " + requestedRole);
-        }
-
-        // Kiểm tra đã có request PENDING chưa
+        // Kiểm tra đã có PENDING request chưa
         roleChangeRequestRepository.findByUserIdAndStatus(currentUser.getId(), "PENDING")
                 .ifPresent(existing -> {
                     throw new BadRequestException(
-                            "You already have a pending role change request (ID: " + existing.getId() + "). " +
-                            "Please wait for admin to review it.");
+                            "Bạn đã có yêu cầu đổi role đang chờ duyệt (ID: " + existing.getId() + "). " +
+                            "Vui lòng đợi admin xem xét.");
                 });
 
-        // Tạo request mới
         RoleChangeRequest roleChangeRequest = RoleChangeRequest.builder()
                 .user(currentUser)
                 .requestedRole(requestedRole)
-                .currentRole(currentRole)
+                .currentRole(currentExclusiveRole)
                 .reason(request.getReason())
                 .status("PENDING")
                 .build();
@@ -108,33 +121,43 @@ public class RoleChangeRequestServiceImpl implements RoleChangeRequestService {
         User admin = userService.getCurrentUser();
 
         RoleChangeRequest roleChangeRequest = roleChangeRequestRepository.findById(request.getRequestId())
-                .orElseThrow(() -> new NotFoundException("Role change request not found"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy yêu cầu đổi role"));
 
         if (!"PENDING".equals(roleChangeRequest.getStatus())) {
-            throw new BadRequestException("This request has already been reviewed. Status: " + roleChangeRequest.getStatus());
+            throw new BadRequestException("Yêu cầu này đã được xem xét. Trạng thái: " + roleChangeRequest.getStatus());
         }
 
         String action = request.getAction().toUpperCase();
         if (!action.equals("APPROVE") && !action.equals("REJECT")) {
-            throw new BadRequestException("Action must be APPROVE or REJECT");
+            throw new BadRequestException("Action phải là APPROVE hoặc REJECT");
         }
 
         roleChangeRequest.setReviewedBy(admin);
         roleChangeRequest.setAdminNote(request.getAdminNote());
 
         if ("APPROVE".equals(action)) {
-            // Xóa role cũ, gán role mới
             User targetUser = roleChangeRequest.getUser();
             String newRoleName = roleChangeRequest.getRequestedRole();
 
+            Role readerRole = roleRepository.findByName("READER")
+                    .orElseThrow(() -> new NotFoundException("Role READER không tồn tại"));
             Role newRole = roleRepository.findByName(newRoleName)
-                    .orElseThrow(() -> new NotFoundException("Role not found: " + newRoleName));
+                    .orElseThrow(() -> new NotFoundException("Role không tồn tại: " + newRoleName));
 
-            // Xóa tất cả role cũ, chỉ giữ 1 role mới
-            Set<Role> newRoles = new HashSet<>();
-            newRoles.add(newRole);
-            targetUser.setRoles(newRoles);
+            // Giữ READER + thêm/thay thế role exclusive mới
+            // Xóa tất cả role exclusive cũ (AUTHOR/EDITOR/REVIEWER), giữ READER, thêm role mới
+            Set<Role> updatedRoles = new HashSet<>();
+            updatedRoles.add(readerRole); // luôn có READER
+            updatedRoles.add(newRole);    // thêm role mới (AUTHOR/EDITOR/REVIEWER)
 
+            // Giữ lại các role đặc biệt khác nếu có (ví dụ ADMIN - không bao giờ bị xóa)
+            for (Role existingRole : targetUser.getRoles()) {
+                if (!EXCLUSIVE_ROLES.contains(existingRole.getName()) && !existingRole.getName().equals("READER")) {
+                    updatedRoles.add(existingRole);
+                }
+            }
+
+            targetUser.setRoles(updatedRoles);
             roleChangeRequest.setStatus("APPROVED");
         } else {
             roleChangeRequest.setStatus("REJECTED");
@@ -162,6 +185,5 @@ public class RoleChangeRequestServiceImpl implements RoleChangeRequestService {
                 .build();
     }
 }
-
 
 

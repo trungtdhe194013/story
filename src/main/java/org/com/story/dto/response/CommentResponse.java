@@ -29,5 +29,6 @@ public class CommentResponse {
     private String content;
     private Long parentId;
     private List<CommentResponse> replies;
+    private Boolean hidden;
     private LocalDateTime createdAt;
 }

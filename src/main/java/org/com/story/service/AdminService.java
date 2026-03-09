@@ -22,4 +22,10 @@ public interface AdminService {
     List<UserResponse> getAllUsers();
 
     DashboardStatsResponse getDashboardStats();
+
+    /** Ban tài khoản. banDays = -1 là ban vĩnh viễn, banDays > 0 là số ngày */
+    UserResponse banUser(Long userId, int banDays);
+
+    /** Gỡ ban tài khoản */
+    UserResponse unbanUser(Long userId);
 }

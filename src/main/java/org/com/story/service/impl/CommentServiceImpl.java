@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -58,10 +59,35 @@ public class CommentServiceImpl implements CommentService {
     public List<CommentResponse> getCommentsByChapter(Long chapterId) {
         chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new NotFoundException("Chapter not found"));
-        return commentRepository.findByChapterIdAndParentIsNull(chapterId)
-                .stream()
-                .map(this::mapToResponseWithReplies)
+
+        // Load toàn bộ comment của chapter chỉ với 1 query
+        List<Comment> allComments = commentRepository.findByChapterId(chapterId);
+
+        // Group theo parentId để tra cứu O(1)
+        Map<Long, List<Comment>> childrenMap = allComments.stream()
+                .filter(c -> c.getParent() != null)
+                .collect(Collectors.groupingBy(c -> c.getParent().getId()));
+
+        // Chỉ lấy root comments (parent == null) rồi build cây đệ quy
+        return allComments.stream()
+                .filter(c -> c.getParent() == null)
+                .map(c -> mapToResponseRecursive(c, childrenMap))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CommentResponse getCommentById(Long id) {
+        Comment comment = commentRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Comment not found"));
+
+        // Build childrenMap chỉ cho chapter của comment đó
+        List<Comment> allInChapter = commentRepository.findByChapterId(comment.getChapter().getId());
+        Map<Long, List<Comment>> childrenMap = allInChapter.stream()
+                .filter(c -> c.getParent() != null)
+                .collect(Collectors.groupingBy(c -> c.getParent().getId()));
+
+        return mapToResponseRecursive(comment, childrenMap);
     }
 
     @Override
@@ -93,18 +119,24 @@ public class CommentServiceImpl implements CommentService {
                 .userName(comment.getUser().getFullName())
                 .content(comment.getContent())
                 .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
+                .hidden(comment.getHidden())
                 .replies(new ArrayList<>())
                 .createdAt(comment.getCreatedAt())
                 .build();
     }
 
-    private CommentResponse mapToResponseWithReplies(Comment comment) {
-        List<Comment> replies = commentRepository.findByChapterId(comment.getChapter().getId())
-                .stream()
-                .filter(c -> c.getParent() != null && c.getParent().getId().equals(comment.getId()))
-                .collect(Collectors.toList());
+    /**
+     * Build cây comment đệ quy vô hạn cấp.
+     * childrenMap: parentId → danh sách comment con (đã load sẵn, không query thêm)
+     */
+    private CommentResponse mapToResponseRecursive(Comment comment, Map<Long, List<Comment>> childrenMap) {
         CommentResponse response = mapToResponse(comment);
-        response.setReplies(replies.stream().map(this::mapToResponse).collect(Collectors.toList()));
+        List<Comment> children = childrenMap.getOrDefault(comment.getId(), new ArrayList<>());
+        response.setReplies(
+                children.stream()
+                        .map(child -> mapToResponseRecursive(child, childrenMap))
+                        .collect(Collectors.toList())
+        );
         return response;
     }
 }

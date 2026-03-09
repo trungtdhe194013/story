@@ -14,6 +14,9 @@ import org.com.story.dto.response.LoginResponse;
 import org.com.story.dto.response.OtpResponse;
 import org.com.story.dto.response.UserResponse;
 import org.com.story.entity.RefreshToken;
+import org.com.story.entity.User;
+import org.com.story.exception.AccountBannedException;
+import org.com.story.repository.UserRepository;
 import org.com.story.security.JwtUtil;
 import org.com.story.service.RefreshTokenService;
 import org.com.story.service.UserService;
@@ -22,6 +25,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -33,6 +39,7 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
     private final UserService userService;
+    private final UserRepository userRepository;
 
     @PostMapping("/sign-up")
     @Operation(
@@ -65,18 +72,26 @@ public class AuthController {
     @Operation(summary = "User login", description = "Login with email and password to get access token")
     public LoginResponse login(@Valid @RequestBody LoginRequest req) {
         authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
-                );
-        String accessToken =
-                jwtUtil.generateAccessToken(req.getEmail());
-
-        RefreshToken refreshToken =
-                refreshTokenService.create(req.getEmail());
-
-        return new LoginResponse(
-                accessToken,
-                refreshToken.getToken()
+                new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
         );
+
+        // Kiểm tra ban sau khi xác thực thành công
+        User user = userRepository.findByEmail(req.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (user.getBanUntil() != null && user.getBanUntil().isAfter(LocalDateTime.now())) {
+            // Ban vĩnh viễn: năm 9999
+            if (user.getBanUntil().getYear() >= 9999) {
+                throw new AccountBannedException("Tài khoản của bạn đã bị khóa vĩnh viễn do vi phạm quy định cộng đồng.");
+            }
+            String banUntilStr = user.getBanUntil().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+            throw new AccountBannedException(
+                    "Tài khoản của bạn đang bị khóa đến " + banUntilStr + " do vi phạm quy định cộng đồng.");
+        }
+
+        String accessToken = jwtUtil.generateAccessToken(req.getEmail());
+        RefreshToken refreshToken = refreshTokenService.create(req.getEmail());
+
+        return new LoginResponse(accessToken, refreshToken.getToken());
     }
 
     @PostMapping("/refresh")

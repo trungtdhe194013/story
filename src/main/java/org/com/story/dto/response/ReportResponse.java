@@ -19,6 +19,8 @@ public class ReportResponse {
     private Long targetId;
     private String reason;
     private String status;
+    private String resolvedAction;  // hành động đã thực hiện khi xử lý
+    private String adminNote;       // ghi chú của admin
     private LocalDateTime createdAt;
 }
 

@@ -30,6 +30,8 @@ public class Comment {
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    private Boolean hidden = false; // true khi bị ẩn do vi phạm
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

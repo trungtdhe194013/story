@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.MissionRequest;
+import org.com.story.dto.request.ResolveReportRequest;
 import org.com.story.dto.request.ReviewRoleChangeRequest;
 import org.com.story.dto.request.ReviewStoryRequest;
 import org.com.story.dto.request.UpdateUserRoleRequest;
@@ -80,6 +81,21 @@ public class AdminController {
         return adminService.updateUserRoles(request);
     }
 
+    @PostMapping("/users/{userId}/ban")
+    @Operation(summary = "Ban user", description = "Khóa tài khoản. banDays = -1 là vĩnh viễn, > 0 là số ngày",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public UserResponse banUser(@PathVariable Long userId,
+                                @RequestParam(defaultValue = "7") int banDays) {
+        return adminService.banUser(userId, banDays);
+    }
+
+    @PostMapping("/users/{userId}/unban")
+    @Operation(summary = "Unban user", description = "Gỡ khóa tài khoản người dùng",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public UserResponse unbanUser(@PathVariable Long userId) {
+        return adminService.unbanUser(userId);
+    }
+
     // ============== REPORTS ==============
 
     @GetMapping("/reports")
@@ -97,10 +113,20 @@ public class AdminController {
     }
 
     @PostMapping("/reports/{id}/resolve")
-    @Operation(summary = "Resolve report", description = "Đánh dấu báo cáo đã xử lý",
+    @Operation(summary = "Resolve report", description = """
+            Xử lý báo cáo vi phạm. action:
+            - WARN_ONLY: chỉ đánh dấu đã xử lý
+            - HIDE_CONTENT: ẩn nội dung (comment→hidden, chapter→HIDDEN, story→REJECTED)
+            - DELETE_CONTENT: xóa nội dung
+            - BAN_USER: ban tài khoản tác giả (cần banDays > 0 hoặc -1 vĩnh viễn)
+            - HIDE_AND_BAN: ẩn nội dung + ban tác giả
+            - DELETE_AND_BAN: xóa nội dung + ban tác giả
+            """,
             security = @SecurityRequirement(name = "bearerAuth"))
-    public ReportResponse resolveReport(@PathVariable Long id) {
-        return reportService.resolveReport(id);
+    public ReportResponse resolveReport(
+            @PathVariable Long id,
+            @Valid @RequestBody ResolveReportRequest request) {
+        return reportService.resolveReport(id, request);
     }
 
     // ============== WITHDRAW REQUESTS ==============

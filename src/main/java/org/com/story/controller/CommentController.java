@@ -27,6 +27,23 @@ public class CommentController {
         return commentService.getCommentsByChapter(chapterId);
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Get comment by ID", description = """
+            Lấy chi tiết 1 comment theo ID. Response bao gồm:
+            - `id`: ID comment
+            - `content`: Nội dung bình luận
+            - `hidden`: Có bị ẩn do vi phạm không
+            - `userId`, `userName`: Người bình luận
+            - `chapterId`, `chapterTitle`, `chapterOrder`: Thông tin chapter
+            - `storyId`, `storyTitle`: Thông tin truyện
+            - `parentId`: null nếu là comment gốc, có giá trị nếu là reply
+            - `replies`: Danh sách các reply con (đệ quy vô hạn cấp)
+            - `createdAt`: Thời điểm tạo
+            """)
+    public CommentResponse getCommentById(@PathVariable Long id) {
+        return commentService.getCommentById(id);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create comment", description = """

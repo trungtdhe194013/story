@@ -294,6 +294,7 @@ public class UserServiceImpl implements UserService {
                 .gender(user.getGender())
                 .location(user.getLocation())
                 .walletBalance(walletBalance)
+                .banUntil(user.getBanUntil())
                 .totalFollowedStories(followedStories)
                 .totalPurchasedChapters(purchasedChapters)
                 .createdAt(user.getCreatedAt())

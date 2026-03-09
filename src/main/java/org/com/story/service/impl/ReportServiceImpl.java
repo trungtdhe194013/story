@@ -2,17 +2,18 @@ package org.com.story.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.ReportRequest;
+import org.com.story.dto.request.ResolveReportRequest;
 import org.com.story.dto.response.ReportResponse;
-import org.com.story.entity.Report;
-import org.com.story.entity.User;
+import org.com.story.entity.*;
 import org.com.story.exception.BadRequestException;
 import org.com.story.exception.NotFoundException;
-import org.com.story.repository.ReportRepository;
+import org.com.story.repository.*;
 import org.com.story.service.ReportService;
 import org.com.story.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,8 +25,16 @@ public class ReportServiceImpl implements ReportService {
 
     private final ReportRepository reportRepository;
     private final UserService userService;
+    private final CommentRepository commentRepository;
+    private final ChapterRepository chapterRepository;
+    private final StoryRepository storyRepository;
+    private final UserRepository userRepository;
 
     private static final Set<String> VALID_TARGET_TYPES = Set.of("STORY", "CHAPTER", "COMMENT");
+    private static final Set<String> VALID_ACTIONS = Set.of(
+            "WARN_ONLY", "HIDE_CONTENT", "DELETE_CONTENT",
+            "BAN_USER", "HIDE_AND_BAN", "DELETE_AND_BAN"
+    );
 
     @Override
     public ReportResponse createReport(ReportRequest request) {
@@ -75,7 +84,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public ReportResponse resolveReport(Long id) {
+    public ReportResponse resolveReport(Long id, ResolveReportRequest request) {
         Report report = reportRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Report not found"));
 
@@ -83,9 +92,74 @@ public class ReportServiceImpl implements ReportService {
             throw new BadRequestException("Report is already resolved");
         }
 
+        String action = request.getAction().toUpperCase();
+        if (!VALID_ACTIONS.contains(action)) {
+            throw new BadRequestException("Invalid action. Allowed: " + VALID_ACTIONS);
+        }
+
+        // ---- 1. Thực hiện hành động lên nội dung bị báo cáo ----
+        User targetOwner = null;
+
+        boolean shouldHide   = action.equals("HIDE_CONTENT")   || action.equals("HIDE_AND_BAN");
+        boolean shouldDelete = action.equals("DELETE_CONTENT")  || action.equals("DELETE_AND_BAN");
+        boolean shouldBan    = action.equals("BAN_USER")        || action.equals("HIDE_AND_BAN") || action.equals("DELETE_AND_BAN");
+
+        switch (report.getTargetType()) {
+            case "COMMENT" -> {
+                Comment comment = commentRepository.findById(report.getTargetId())
+                        .orElseThrow(() -> new NotFoundException("Comment #" + report.getTargetId() + " not found"));
+                targetOwner = comment.getUser();
+                if (shouldHide) {
+                    comment.setHidden(true);
+                    commentRepository.save(comment);
+                } else if (shouldDelete) {
+                    commentRepository.delete(comment);
+                }
+            }
+            case "CHAPTER" -> {
+                Chapter chapter = chapterRepository.findById(report.getTargetId())
+                        .orElseThrow(() -> new NotFoundException("Chapter #" + report.getTargetId() + " not found"));
+                targetOwner = chapter.getStory().getAuthor();
+                if (shouldHide) {
+                    chapter.setStatus("HIDDEN");
+                    chapterRepository.save(chapter);
+                } else if (shouldDelete) {
+                    chapterRepository.delete(chapter);
+                }
+            }
+            case "STORY" -> {
+                Story story = storyRepository.findById(report.getTargetId())
+                        .orElseThrow(() -> new NotFoundException("Story #" + report.getTargetId() + " not found"));
+                targetOwner = story.getAuthor();
+                if (shouldHide) {
+                    story.setStatus("REJECTED");
+                    storyRepository.save(story);
+                } else if (shouldDelete) {
+                    storyRepository.delete(story);
+                }
+            }
+        }
+
+        // ---- 2. Ban tài khoản tác giả nội dung (nếu cần) ----
+        if (shouldBan && targetOwner != null) {
+            if (request.getBanDays() == 0) {
+                throw new BadRequestException("banDays must be > 0 or -1 (permanent) when action includes BAN");
+            }
+            if (request.getBanDays() == -1) {
+                // Ban vĩnh viễn: đặt thời gian rất xa
+                targetOwner.setBanUntil(LocalDateTime.of(9999, 12, 31, 23, 59, 59));
+            } else {
+                targetOwner.setBanUntil(LocalDateTime.now().plusDays(request.getBanDays()));
+            }
+            userRepository.save(targetOwner);
+        }
+
+        // ---- 3. Đánh dấu report đã xử lý ----
         report.setStatus("RESOLVED");
-        Report updatedReport = reportRepository.save(report);
-        return mapToResponse(updatedReport);
+        report.setResolvedAction(action);
+        report.setAdminNote(request.getAdminNote());
+        Report updated = reportRepository.save(report);
+        return mapToResponse(updated);
     }
 
     private ReportResponse mapToResponse(Report report) {
@@ -97,6 +171,8 @@ public class ReportServiceImpl implements ReportService {
                 .targetId(report.getTargetId())
                 .reason(report.getReason())
                 .status(report.getStatus())
+                .resolvedAction(report.getResolvedAction())
+                .adminNote(report.getAdminNote())
                 .createdAt(report.getCreatedAt())
                 .build();
     }

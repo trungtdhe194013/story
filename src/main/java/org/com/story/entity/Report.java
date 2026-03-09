@@ -34,6 +34,11 @@ public class Report {
 
     private String status; // PENDING, RESOLVED
 
+    private String resolvedAction; // WARN_ONLY, HIDE_CONTENT, DELETE_CONTENT, BAN_USER, HIDE_AND_BAN, DELETE_AND_BAN
+
+    @Column(columnDefinition = "TEXT")
+    private String adminNote; // ghi chú của admin khi xử lý
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }
