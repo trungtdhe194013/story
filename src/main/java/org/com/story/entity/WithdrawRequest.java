@@ -27,7 +27,20 @@ public class WithdrawRequest {
     private User user;
 
     private Long amount;
-    private String status; // PENDING, APPROVED
+    private String status; // PENDING, APPROVED, REJECTED
+
+    private String bankName;
+    private String bankAccount;
+    private String bankOwner;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "processed_by")
+    private User processedBy;
+
+    private LocalDateTime processedAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String rejectedReason;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

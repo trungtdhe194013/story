@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.MissionRequest;
+import org.com.story.dto.request.RejectWithdrawDto;
 import org.com.story.dto.request.ResolveReportRequest;
 import org.com.story.dto.request.ReviewRoleChangeRequest;
 import org.com.story.dto.request.ReviewStoryRequest;
@@ -153,10 +154,14 @@ public class AdminController {
     }
 
     @PostMapping("/withdraw-requests/{id}/reject")
-    @Operation(summary = "Reject withdraw request", description = "Từ chối yêu cầu rút tiền",
+    @Operation(summary = "Reject withdraw request",
+            description = "Từ chối yêu cầu rút tiền — coin đã freeze được hoàn trả về ví user",
             security = @SecurityRequirement(name = "bearerAuth"))
-    public WithdrawRequestResponse rejectWithdrawRequest(@PathVariable Long id) {
-        return withdrawRequestService.rejectWithdrawRequest(id);
+    public WithdrawRequestResponse rejectWithdrawRequest(
+            @PathVariable Long id,
+            @RequestBody(required = false) RejectWithdrawDto body) {
+        String reason = (body != null) ? body.getRejectedReason() : null;
+        return withdrawRequestService.rejectWithdrawRequest(id, reason);
     }
 
     // ============== MISSIONS ==============

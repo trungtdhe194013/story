@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -18,6 +19,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT COUNT(s) FROM User u JOIN u.followedStories s WHERE u.id = :userId")
     int countFollowedStories(@Param("userId") Long userId);
 
-    @Query("SELECT COUNT(c) FROM User u JOIN u.purchasedChapters c WHERE u.id = :userId")
-    int countPurchasedChapters(@Param("userId") Long userId);
+    /** Đếm số follower của một story */
+    @Query("SELECT COUNT(u) FROM User u JOIN u.followedStories s WHERE s.id = :storyId")
+    long countFollowersByStoryId(@Param("storyId") Long storyId);
+
+    /** Lấy danh sách follower của một story — để gửi notification */
+    @Query("SELECT u FROM User u JOIN u.followedStories s WHERE s.id = :storyId")
+    List<User> findFollowersByStoryId(@Param("storyId") Long storyId);
 }

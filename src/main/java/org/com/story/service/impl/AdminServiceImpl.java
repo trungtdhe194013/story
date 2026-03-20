@@ -5,9 +5,13 @@ import org.com.story.dto.request.ReviewChapterRequest;
 import org.com.story.dto.request.ReviewStoryRequest;
 import org.com.story.dto.request.UpdateUserRoleRequest;
 import org.com.story.dto.response.ChapterResponse;
+import org.com.story.dto.response.ChapterResponse;
+import org.com.story.dto.response.ChapterSummaryResponse;
 import org.com.story.dto.response.DashboardStatsResponse;
+import org.com.story.dto.response.StoryDetailResponse;
 import org.com.story.dto.response.StoryResponse;
 import org.com.story.dto.response.UserResponse;
+import org.com.story.dto.response.CategoryResponse;
 import org.com.story.entity.AdminReview;
 import org.com.story.entity.Chapter;
 import org.com.story.entity.Role;
@@ -52,7 +56,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public List<StoryResponse> getPendingStories() {
-        return storyRepository.findByStatus("PENDING")
+        return storyRepository.findPendingForReview()
                 .stream()
                 .map(this::mapStoryToResponse)
                 .collect(Collectors.toList());
@@ -118,13 +122,12 @@ public class AdminServiceImpl implements AdminService {
         }
 
         if ("APPROVE".equals(request.getAction())) {
-            chapter.setStatus("PUBLISHED");
-            if (chapter.getPublishAt() == null) {
-                chapter.setPublishAt(java.time.LocalDateTime.now());
-            }
+            // Reviewer chỉ DUYỆT — Author tự quyết định khi publish
+            chapter.setStatus("APPROVED");
         } else {
-            // REJECT → trả về DRAFT để author sửa lại
+            // REJECT → trả về DRAFT để author sửa lại, lưu lý do
             chapter.setStatus("DRAFT");
+            chapter.setReviewNote(request.getNote());
         }
 
         chapterRepository.save(chapter);
@@ -182,6 +185,57 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public StoryDetailResponse getStoryDetailForReview(Long storyId) {
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new NotFoundException("Story not found"));
+
+        // Lấy TẤT CẢ chapter (kể cả PENDING_REVIEW) để reviewer đọc
+        List<Chapter> chapters = chapterRepository.findByStoryIdOrderByChapterOrderAsc(storyId);
+        List<ChapterSummaryResponse> chapterSummaries = chapters.stream()
+                .map(ch -> ChapterSummaryResponse.builder()
+                        .id(ch.getId())
+                        .title(ch.getTitle())
+                        .chapterOrder(ch.getChapterOrder())
+                        .coinPrice(ch.getCoinPrice())
+                        .status(ch.getStatus())
+                        .publishAt(ch.getPublishAt())
+                        .isPurchased(false)
+                        .build())
+                .collect(Collectors.toList());
+
+        return StoryDetailResponse.builder()
+                .id(story.getId())
+                .title(story.getTitle())
+                .summary(story.getSummary())
+                .coverUrl(story.getCoverUrl())
+                .status(story.getStatus())
+                .authorId(story.getAuthor().getId())
+                .authorName(story.getAuthor().getFullName())
+                .viewCount(story.getViewCount())
+                .categories(story.getCategories() == null ? java.util.Set.of() :
+                        story.getCategories().stream()
+                                .map(c -> CategoryResponse.builder()
+                                        .id(c.getId())
+                                        .name(c.getName())
+                                        .build())
+                                .collect(Collectors.toSet()))
+                .createdAt(story.getCreatedAt())
+                .updatedAt(story.getUpdatedAt())
+                .chapters(chapterSummaries)
+                .totalChapters(chapterSummaries.size())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ChapterResponse getChapterForReview(Long chapterId) {
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new NotFoundException("Chapter not found"));
+        return mapChapterToResponseWithContent(chapter);
+    }
+
+    @Override
     public UserResponse banUser(Long userId, int banDays) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
@@ -213,6 +267,26 @@ public class AdminServiceImpl implements AdminService {
                 .chapterOrder(chapter.getChapterOrder())
                 .coinPrice(chapter.getCoinPrice())
                 .status(chapter.getStatus())
+                .reviewNote(chapter.getReviewNote())
+                .publishAt(chapter.getPublishAt())
+                .createdAt(chapter.getCreatedAt())
+                .updatedAt(chapter.getUpdatedAt())
+                .isPurchased(false)
+                .build();
+    }
+
+    /** Trả về đầy đủ content — dùng cho Reviewer đọc trước khi duyệt */
+    private ChapterResponse mapChapterToResponseWithContent(Chapter chapter) {
+        return ChapterResponse.builder()
+                .id(chapter.getId())
+                .storyId(chapter.getStory().getId())
+                .storyTitle(chapter.getStory().getTitle())
+                .title(chapter.getTitle())
+                .content(chapter.getContent())
+                .chapterOrder(chapter.getChapterOrder())
+                .coinPrice(chapter.getCoinPrice())
+                .status(chapter.getStatus())
+                .reviewNote(chapter.getReviewNote())
                 .publishAt(chapter.getPublishAt())
                 .createdAt(chapter.getCreatedAt())
                 .updatedAt(chapter.getUpdatedAt())
@@ -221,6 +295,9 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private StoryResponse mapStoryToResponse(Story story) {
+        int publishedCount = (int) chapterRepository.countByStoryIdAndStatus(story.getId(), "PUBLISHED");
+        int totalCount     = (int) chapterRepository.countByStoryId(story.getId());
+
         return StoryResponse.builder()
                 .id(story.getId())
                 .title(story.getTitle())
@@ -231,6 +308,9 @@ public class AdminServiceImpl implements AdminService {
                 .authorName(story.getAuthor().getFullName())
                 .createdAt(story.getCreatedAt())
                 .updatedAt(story.getUpdatedAt())
+                .publishedChapterCount(publishedCount)
+                .totalChapterCount(totalCount)
+                .isDeleted(Boolean.TRUE.equals(story.getIsDeleted()))
                 .build();
     }
 

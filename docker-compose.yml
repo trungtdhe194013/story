@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: story_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
     ports:
       - "5432:5432"
     volumes:
@@ -29,17 +29,17 @@ services:
       # Database
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/story_db
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: admin
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-admin}
       # JPA
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       # App
-      APP_BASE_URL: http://localhost:8080
-      # Mail (thay bằng thông tin thật nếu cần)
-      SPRING_MAIL_USERNAME: quotopo@gmail.com
-      SPRING_MAIL_PASSWORD: mxjlxlygvrmcqyim
-      # OAuth2 Google (thay bằng client id/secret thật)
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: YOUR_GOOGLE_CLIENT_ID
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: YOUR_GOOGLE_CLIENT_SECRET
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      # Mail
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # OAuth2 Google
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-your-google-client-id}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-your-google-client-secret}
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,4 +47,3 @@ services:
 
 volumes:
   postgres_data:
-

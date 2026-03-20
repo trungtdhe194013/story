@@ -9,5 +9,7 @@ public interface FollowService {
     FollowResponse toggleFollow(Long storyId);
     List<StoryResponse> getFollowedStories();
     boolean isFollowing(Long storyId);
+    /** Đếm số người đang follow một truyện */
+    long getFollowCount(Long storyId);
 }
 

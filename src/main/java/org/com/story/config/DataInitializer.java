@@ -158,7 +158,9 @@ public class DataInitializer {
 
         for (String name : categoryNames) {
             if (categoryRepository.findByName(name).isEmpty()) {
-                Category category = new Category(null, name);
+                Category category = new Category();
+                category.setName(name);
+                category.setSlug(name.toLowerCase().replaceAll("\\s+", "-"));
                 categories.add(categoryRepository.save(category));
             } else {
                 categoryRepository.findByName(name).ifPresent(categories::add);

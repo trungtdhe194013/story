@@ -7,7 +7,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_missions")
+@Table(name = "user_missions", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "mission_id"})
+})
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class UserMission {
@@ -26,7 +28,13 @@ public class UserMission {
 
     private Boolean completed = false;
 
-    @CreationTimestamp
-    private LocalDateTime completedAt;
-}
+    /** Tiến độ hiện tại (ví dụ: đọc 3/5 chương) */
+    private Integer progress = 0;
 
+    private LocalDateTime completedAt;
+
+    private LocalDateTime lastResetAt;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+}

@@ -34,6 +34,10 @@ public class Gift {
 
     private Long amount;
 
+    /** Lời nhắn kèm quà */
+    @Column(columnDefinition = "TEXT")
+    private String message;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

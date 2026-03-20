@@ -3,21 +3,13 @@ package org.com.story.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.ChapterRequest;
 import org.com.story.dto.response.ChapterResponse;
-import org.com.story.dto.response.ChapterResponse;
 import org.com.story.dto.response.CommentResponse;
-import org.com.story.entity.Chapter;
-import org.com.story.entity.Story;
-import org.com.story.entity.User;
-import org.com.story.entity.Wallet;
+import org.com.story.entity.*;
 import org.com.story.exception.BadRequestException;
 import org.com.story.exception.NotFoundException;
 import org.com.story.exception.UnauthorizedException;
-import org.com.story.repository.ChapterRepository;
-import org.com.story.repository.StoryRepository;
-import org.com.story.repository.WalletRepository;
-import org.com.story.service.ChapterService;
-import org.com.story.service.CommentService;
-import org.com.story.service.UserService;
+import org.com.story.repository.*;
+import org.com.story.service.*;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +27,15 @@ public class ChapterServiceImpl implements ChapterService {
     private final ChapterRepository chapterRepository;
     private final StoryRepository storyRepository;
     private final WalletRepository walletRepository;
+    private final ChapterPurchaseRepository chapterPurchaseRepository;
     private final UserService userService;
     @Lazy
     private final CommentService commentService;
+    @Lazy
+    private final NotificationService notificationService;
+    @Lazy
+    private final ReadingHistoryService readingHistoryService;
+    private final WalletService walletService;
 
     @Override
     public ChapterResponse createChapter(Long storyId, ChapterRequest request) {
@@ -45,7 +43,6 @@ public class ChapterServiceImpl implements ChapterService {
         Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new NotFoundException("Story not found"));
 
-        // Check ownership
         if (!story.getAuthor().getId().equals(currentUser.getId())) {
             throw new UnauthorizedException("You don't have permission to add chapters to this story");
         }
@@ -58,6 +55,7 @@ public class ChapterServiceImpl implements ChapterService {
         chapter.setCoinPrice(request.getCoinPrice());
         chapter.setStatus("DRAFT");
         chapter.setPublishAt(request.getPublishAt());
+        chapter.setWordCount(request.getContent() != null ? request.getContent().split("\\s+").length : 0);
 
         Chapter savedChapter = chapterRepository.save(chapter);
         return mapToResponse(savedChapter, currentUser, Collections.emptyList());
@@ -69,32 +67,36 @@ public class ChapterServiceImpl implements ChapterService {
                 .orElseThrow(() -> new NotFoundException("Chapter not found"));
 
         User currentUser = null;
-        try {
-            currentUser = userService.getCurrentUser();
-        } catch (Exception e) {
-            // User not logged in
-        }
+        try { currentUser = userService.getCurrentUser(); } catch (Exception e) {}
 
         Story story = chapter.getStory();
-
-        // Check access permission
         boolean isAuthor = currentUser != null && story.getAuthor().getId().equals(currentUser.getId());
         boolean isPublished = "PUBLISHED".equals(chapter.getStatus());
-        boolean isFree = chapter.getCoinPrice() == 0;
-        boolean isPurchased = currentUser != null && currentUser.getPurchasedChapters().contains(chapter);
+        boolean isFree = chapter.getCoinPrice() == null || chapter.getCoinPrice() == 0;
+        boolean isPurchased = currentUser != null &&
+                chapterPurchaseRepository.existsByUserIdAndChapterId(currentUser.getId(), chapter.getId());
 
         if (!isAuthor && !isPublished) {
             throw new UnauthorizedException("Chapter is not published yet");
         }
 
         if (!isAuthor && !isFree && !isPurchased) {
-            // Return chapter without content
             ChapterResponse response = mapToResponse(chapter, currentUser, Collections.emptyList());
             response.setContent("[Locked] Purchase this chapter to read");
             return response;
         }
 
-        // Load comments của chapter này
+        // Tự động ghi ReadingHistory khi user đọc chapter
+        if (currentUser != null && isPublished) {
+            try {
+                readingHistoryService.recordReading(currentUser.getId(), story.getId(), chapter.getId());
+            } catch (Exception ignored) {}
+
+            // Tăng viewCount
+            chapter.setViewCount((chapter.getViewCount() != null ? chapter.getViewCount() : 0) + 1);
+            chapterRepository.save(chapter);
+        }
+
         List<CommentResponse> comments = commentService.getCommentsByChapter(id);
         return mapToResponse(chapter, currentUser, comments);
     }
@@ -105,20 +107,14 @@ public class ChapterServiceImpl implements ChapterService {
                 .orElseThrow(() -> new NotFoundException("Story not found"));
 
         User currentUser = null;
-        try {
-            currentUser = userService.getCurrentUser();
-        } catch (Exception e) {
-            // User not logged in
-        }
+        try { currentUser = userService.getCurrentUser(); } catch (Exception e) {}
 
         boolean isAuthor = currentUser != null && story.getAuthor().getId().equals(currentUser.getId());
 
         List<Chapter> chapters;
         if (isAuthor) {
-            // Author can see all chapters
             chapters = chapterRepository.findByStoryIdOrderByChapterOrderAsc(storyId);
         } else {
-            // Others can only see published chapters
             chapters = chapterRepository.findPublishedByStoryId(storyId);
         }
 
@@ -134,7 +130,6 @@ public class ChapterServiceImpl implements ChapterService {
         Chapter chapter = chapterRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Chapter not found"));
 
-        // Check ownership
         if (!chapter.getStory().getAuthor().getId().equals(currentUser.getId())) {
             throw new UnauthorizedException("You don't have permission to update this chapter");
         }
@@ -144,6 +139,7 @@ public class ChapterServiceImpl implements ChapterService {
         chapter.setChapterOrder(request.getChapterOrder());
         chapter.setCoinPrice(request.getCoinPrice());
         chapter.setPublishAt(request.getPublishAt());
+        chapter.setWordCount(request.getContent() != null ? request.getContent().split("\\s+").length : 0);
 
         Chapter updatedChapter = chapterRepository.save(chapter);
         return mapToResponse(updatedChapter, currentUser, Collections.emptyList());
@@ -155,7 +151,6 @@ public class ChapterServiceImpl implements ChapterService {
         Chapter chapter = chapterRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Chapter not found"));
 
-        // Check ownership
         if (!chapter.getStory().getAuthor().getId().equals(currentUser.getId())) {
             throw new UnauthorizedException("You don't have permission to delete this chapter");
         }
@@ -164,25 +159,56 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
-    public ChapterResponse publishChapter(Long id) {
+    public ChapterResponse submitForReview(Long id) {
         User currentUser = userService.getCurrentUser();
         Chapter chapter = chapterRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Chapter not found"));
 
-        // Check ownership
         if (!chapter.getStory().getAuthor().getId().equals(currentUser.getId())) {
             throw new UnauthorizedException("You don't have permission to submit this chapter");
         }
 
-        // Chỉ cho phép submit từ DRAFT hoặc EDITED
-        if (!"DRAFT".equals(chapter.getStatus()) && !"EDITED".equals(chapter.getStatus())) {
-            throw new BadRequestException("Only DRAFT or EDITED chapters can be submitted for review. Current status: " + chapter.getStatus());
+        if (!"DRAFT".equals(chapter.getStatus()) && !"EDITED".equals(chapter.getStatus())
+                && !"REJECTED".equals(chapter.getStatus())) {
+            throw new BadRequestException("Chỉ chapter ở trạng thái DRAFT, EDITED hoặc REJECTED mới có thể nộp duyệt. Hiện tại: " + chapter.getStatus());
         }
 
-        // Author chỉ được submit lên PENDING_REVIEW, chờ reviewer duyệt
-        chapter.setStatus("PENDING_REVIEW");
-
+        chapter.setStatus("PENDING");
+        chapter.setRejectReason(null);
+        chapter.setReviewNote(null);
         Chapter updatedChapter = chapterRepository.save(chapter);
+        return mapToResponse(updatedChapter, currentUser, Collections.emptyList());
+    }
+
+    @Override
+    public ChapterResponse publishApprovedChapter(Long id) {
+        User currentUser = userService.getCurrentUser();
+        Chapter chapter = chapterRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Chapter not found"));
+
+        if (!chapter.getStory().getAuthor().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedException("You don't have permission to publish this chapter");
+        }
+
+        if (!"APPROVED".equals(chapter.getStatus())) {
+            throw new BadRequestException("Chapter phải được Reviewer APPROVE trước khi publish. Hiện tại: " + chapter.getStatus());
+        }
+
+        chapter.setStatus("PUBLISHED");
+        chapter.setPublishAt(LocalDateTime.now());
+        Chapter updatedChapter = chapterRepository.save(chapter);
+
+        // Gửi notification cho followers
+        Story story = chapter.getStory();
+        try {
+            notificationService.sendToFollowers(
+                    story.getId(), "NEW_CHAPTER",
+                    "Chương mới: " + chapter.getTitle(),
+                    "Truyện '" + story.getTitle() + "' vừa ra chương mới: " + chapter.getTitle(),
+                    chapter.getId(), "CHAPTER"
+            );
+        } catch (Exception ignored) {}
+
         return mapToResponse(updatedChapter, currentUser, Collections.emptyList());
     }
 
@@ -192,17 +218,14 @@ public class ChapterServiceImpl implements ChapterService {
         Chapter chapter = chapterRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Chapter not found"));
 
-        // Check if already purchased
-        if (currentUser.getPurchasedChapters().contains(chapter)) {
+        if (chapterPurchaseRepository.existsByUserIdAndChapterId(currentUser.getId(), chapter.getId())) {
             throw new BadRequestException("You already purchased this chapter");
         }
 
-        // Check if free
-        if (chapter.getCoinPrice() == 0) {
+        if (chapter.getCoinPrice() == null || chapter.getCoinPrice() == 0) {
             throw new BadRequestException("This chapter is free");
         }
 
-        // Check wallet balance
         Wallet wallet = walletRepository.findByUserId(currentUser.getId())
                 .orElseThrow(() -> new NotFoundException("Wallet not found"));
 
@@ -210,14 +233,19 @@ public class ChapterServiceImpl implements ChapterService {
             throw new BadRequestException("Insufficient balance. You need " + chapter.getCoinPrice() + " coins");
         }
 
-        // Deduct coins
+        // Trừ tiền người mua
         wallet.setBalance(wallet.getBalance() - chapter.getCoinPrice());
         walletRepository.save(wallet);
 
-        // Add chapter to purchased list
-        currentUser.getPurchasedChapters().add(chapter);
+        // Lưu ChapterPurchase
+        ChapterPurchase purchase = ChapterPurchase.builder()
+                .user(currentUser)
+                .chapter(chapter)
+                .pricePaid(chapter.getCoinPrice())
+                .build();
+        chapterPurchaseRepository.save(purchase);
 
-        // Add coins to author's wallet
+        // Cộng tiền cho tác giả
         User author = chapter.getStory().getAuthor();
         Wallet authorWallet = walletRepository.findByUserId(author.getId())
                 .orElseGet(() -> {
@@ -226,16 +254,22 @@ public class ChapterServiceImpl implements ChapterService {
                     newWallet.setBalance(0L);
                     return walletRepository.save(newWallet);
                 });
-
         authorWallet.setBalance(authorWallet.getBalance() + chapter.getCoinPrice());
         walletRepository.save(authorWallet);
+
+        // Update totalEarnedCoin
+        author.setTotalEarnedCoin((author.getTotalEarnedCoin() != null ? author.getTotalEarnedCoin() : 0L) + chapter.getCoinPrice());
+
+        // Ghi giao dịch
+        walletService.createTransaction(currentUser.getId(), (long) -chapter.getCoinPrice(), "BUY", chapter.getId());
+        walletService.createTransaction(author.getId(), (long) chapter.getCoinPrice(), "BUY", chapter.getId());
 
         return mapToResponse(chapter, currentUser, Collections.emptyList());
     }
 
     private ChapterResponse mapToResponse(Chapter chapter, User currentUser, List<CommentResponse> comments) {
         boolean isPurchased = currentUser != null &&
-                              currentUser.getPurchasedChapters().contains(chapter);
+                chapterPurchaseRepository.existsByUserIdAndChapterId(currentUser.getId(), chapter.getId());
 
         return ChapterResponse.builder()
                 .id(chapter.getId())
@@ -246,6 +280,7 @@ public class ChapterServiceImpl implements ChapterService {
                 .chapterOrder(chapter.getChapterOrder())
                 .coinPrice(chapter.getCoinPrice())
                 .status(chapter.getStatus())
+                .reviewNote(chapter.getReviewNote())
                 .publishAt(chapter.getPublishAt())
                 .createdAt(chapter.getCreatedAt())
                 .updatedAt(chapter.getUpdatedAt())

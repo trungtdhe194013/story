@@ -29,6 +29,9 @@ public class Report {
     private String targetType; // STORY, CHAPTER, COMMENT
     private Long targetId;
 
+    /** Phân loại: SPAM, COPYRIGHT, INAPPROPRIATE, VIOLENCE, OTHER */
+    private String category;
+
     @Column(columnDefinition = "TEXT")
     private String reason;
 
@@ -38,6 +41,12 @@ public class Report {
 
     @Column(columnDefinition = "TEXT")
     private String adminNote; // ghi chú của admin khi xử lý
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resolved_by")
+    private User resolvedBy;
+
+    private LocalDateTime resolvedAt;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

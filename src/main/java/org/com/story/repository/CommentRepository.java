@@ -10,4 +10,8 @@ import java.util.List;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByChapterId(Long chapterId);
     List<Comment> findByChapterIdAndParentIsNull(Long chapterId);
+
+    /** Story-level comments */
+    List<Comment> findByStoryId(Long storyId);
+    List<Comment> findByStoryIdAndParentIsNull(Long storyId);
 }

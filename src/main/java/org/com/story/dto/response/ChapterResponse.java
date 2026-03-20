@@ -26,6 +26,9 @@ public class ChapterResponse {
     private LocalDateTime updatedAt;
     private Boolean isPurchased;
 
+    /** Lý do reviewer từ chối (chỉ hiển thị khi status = DRAFT sau khi bị reject) */
+    private String reviewNote;
+
     // Comment của chương này
     private List<CommentResponse> comments;
     private Integer totalComments;

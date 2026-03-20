@@ -11,6 +11,6 @@ public interface WithdrawRequestService {
     List<WithdrawRequestResponse> getAllWithdrawRequests();
     List<WithdrawRequestResponse> getPendingWithdrawRequests();
     WithdrawRequestResponse approveWithdrawRequest(Long id);
-    WithdrawRequestResponse rejectWithdrawRequest(Long id);
+    WithdrawRequestResponse rejectWithdrawRequest(Long id, String rejectedReason);
 }
 

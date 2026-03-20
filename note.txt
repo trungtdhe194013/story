@@ -15,6 +15,12 @@ docker run -d -p 8080:8080 \
   -e DB_PASS=your_password \
   my-spring-app
 
+Câu lệnh build dự án:
+.\mvnw clean package -DskipTests
+
+Chạy ứng dụng:
+.\mvnw spring-boot:run
+
 - Chạy thử coi có lên được không
 - Build project (Mở maven IntelliJ, chạy lệnh có -DskipTests) => Build file jar
 - Build image => Đóng gói phần mềm

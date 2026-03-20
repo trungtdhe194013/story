@@ -14,5 +14,7 @@ public class FollowResponse {
     private String storyTitle;
     private String status; // FOLLOWED, UNFOLLOWED
     private String message;
+    /** Tổng số follower sau khi toggle */
+    private Long followCount;
 }
 

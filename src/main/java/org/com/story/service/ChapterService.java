@@ -11,6 +11,12 @@ public interface ChapterService {
     List<ChapterResponse> getChaptersByStory(Long storyId);
     ChapterResponse updateChapter(Long id, ChapterRequest request);
     void deleteChapter(Long id);
-    ChapterResponse publishChapter(Long id);
+
+    /** Author nộp chapter lên Reviewer (DRAFT/EDITED → PENDING_REVIEW) */
+    ChapterResponse submitForReview(Long id);
+
+    /** Author tự publish sau khi Reviewer đã APPROVE (APPROVED → PUBLISHED) */
+    ChapterResponse publishApprovedChapter(Long id);
+
     ChapterResponse purchaseChapter(Long id);
 }

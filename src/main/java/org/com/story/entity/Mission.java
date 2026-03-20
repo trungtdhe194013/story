@@ -1,15 +1,8 @@
 package org.com.story.entity;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+
 import jakarta.persistence.*;
 import lombok.*;
-import org.com.story.common.AuthProvider;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+
 @Entity
 @Table(name = "missions")
 @Getter @Setter
@@ -21,6 +14,19 @@ public class Mission {
     private Long id;
 
     private String name;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     private Long rewardCoin;
     private String type; // DAILY, READ
+
+    private Integer targetCount = 1;
+
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
+    private Boolean isActive = true;
+
+    private String icon;
+
+    private Integer displayOrder = 0;
 }

@@ -39,5 +39,11 @@ public class FollowController {
     public boolean isFollowing(@PathVariable Long storyId) {
         return followService.isFollowing(storyId);
     }
+
+    @GetMapping("/story/{storyId}/count")
+    @Operation(summary = "Get follow count", description = "Đếm số người đang follow một truyện (public, không cần đăng nhập)")
+    public long getFollowCount(@PathVariable Long storyId) {
+        return followService.getFollowCount(storyId);
+    }
 }
 

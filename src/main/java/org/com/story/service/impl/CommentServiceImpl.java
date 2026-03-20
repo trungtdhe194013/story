@@ -3,14 +3,13 @@ package org.com.story.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.CommentRequest;
 import org.com.story.dto.response.CommentResponse;
-import org.com.story.entity.Chapter;
-import org.com.story.entity.Comment;
-import org.com.story.entity.User;
+import org.com.story.entity.*;
 import org.com.story.exception.BadRequestException;
 import org.com.story.exception.NotFoundException;
 import org.com.story.exception.UnauthorizedException;
 import org.com.story.repository.ChapterRepository;
 import org.com.story.repository.CommentRepository;
+import org.com.story.repository.StoryRepository;
 import org.com.story.service.CommentService;
 import org.com.story.service.UserService;
 import org.springframework.stereotype.Service;
@@ -28,26 +27,32 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
     private final ChapterRepository chapterRepository;
+    private final StoryRepository storyRepository;
     private final UserService userService;
 
     @Override
     public CommentResponse createComment(CommentRequest request) {
         User currentUser = userService.getCurrentUser();
 
-        Chapter chapter = chapterRepository.findById(request.getChapterId())
-                .orElseThrow(() -> new NotFoundException("Chapter not found"));
-
         Comment comment = new Comment();
         comment.setUser(currentUser);
         comment.setContent(request.getContent());
-        comment.setChapter(chapter);
+
+        if (request.getChapterId() != null) {
+            Chapter chapter = chapterRepository.findById(request.getChapterId())
+                    .orElseThrow(() -> new NotFoundException("Chapter not found"));
+            comment.setChapter(chapter);
+        } else if (request.getStoryId() != null) {
+            Story story = storyRepository.findById(request.getStoryId())
+                    .orElseThrow(() -> new NotFoundException("Story not found"));
+            comment.setStory(story);
+        } else {
+            throw new BadRequestException("Either chapterId or storyId is required");
+        }
 
         if (request.getParentId() != null) {
             Comment parent = commentRepository.findById(request.getParentId())
                     .orElseThrow(() -> new NotFoundException("Parent comment not found"));
-            if (parent.getChapter() == null || !parent.getChapter().getId().equals(chapter.getId())) {
-                throw new BadRequestException("Parent comment does not belong to this chapter");
-            }
             comment.setParent(parent);
         }
 
@@ -60,19 +65,18 @@ public class CommentServiceImpl implements CommentService {
         chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new NotFoundException("Chapter not found"));
 
-        // Load toàn bộ comment của chapter chỉ với 1 query
         List<Comment> allComments = commentRepository.findByChapterId(chapterId);
+        return buildCommentTree(allComments);
+    }
 
-        // Group theo parentId để tra cứu O(1)
-        Map<Long, List<Comment>> childrenMap = allComments.stream()
-                .filter(c -> c.getParent() != null)
-                .collect(Collectors.groupingBy(c -> c.getParent().getId()));
+    @Override
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getCommentsByStory(Long storyId) {
+        storyRepository.findById(storyId)
+                .orElseThrow(() -> new NotFoundException("Story not found"));
 
-        // Chỉ lấy root comments (parent == null) rồi build cây đệ quy
-        return allComments.stream()
-                .filter(c -> c.getParent() == null)
-                .map(c -> mapToResponseRecursive(c, childrenMap))
-                .collect(Collectors.toList());
+        List<Comment> allComments = commentRepository.findByStoryId(storyId);
+        return buildCommentTree(allComments);
     }
 
     @Override
@@ -81,9 +85,16 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Comment not found"));
 
-        // Build childrenMap chỉ cho chapter của comment đó
-        List<Comment> allInChapter = commentRepository.findByChapterId(comment.getChapter().getId());
-        Map<Long, List<Comment>> childrenMap = allInChapter.stream()
+        List<Comment> allInContext;
+        if (comment.getChapter() != null) {
+            allInContext = commentRepository.findByChapterId(comment.getChapter().getId());
+        } else if (comment.getStory() != null) {
+            allInContext = commentRepository.findByStoryId(comment.getStory().getId());
+        } else {
+            return mapToResponse(comment);
+        }
+
+        Map<Long, List<Comment>> childrenMap = allInContext.stream()
                 .filter(c -> c.getParent() != null)
                 .collect(Collectors.groupingBy(c -> c.getParent().getId()));
 
@@ -97,8 +108,7 @@ public class CommentServiceImpl implements CommentService {
                 .orElseThrow(() -> new NotFoundException("Comment not found"));
 
         boolean isOwner = comment.getUser().getId().equals(currentUser.getId());
-        boolean isAdmin = currentUser.getRoles().stream()
-                .anyMatch(r -> r.getName().equals("ADMIN"));
+        boolean isAdmin = currentUser.getRoles().stream().anyMatch(r -> r.getName().equals("ADMIN"));
 
         if (!isOwner && !isAdmin) {
             throw new UnauthorizedException("You don't have permission to delete this comment");
@@ -106,29 +116,44 @@ public class CommentServiceImpl implements CommentService {
         commentRepository.delete(comment);
     }
 
+    private List<CommentResponse> buildCommentTree(List<Comment> allComments) {
+        // Filter hidden
+        List<Comment> visibleComments = allComments.stream()
+                .filter(c -> !Boolean.TRUE.equals(c.getHidden()))
+                .collect(Collectors.toList());
+
+        Map<Long, List<Comment>> childrenMap = visibleComments.stream()
+                .filter(c -> c.getParent() != null)
+                .collect(Collectors.groupingBy(c -> c.getParent().getId()));
+
+        return visibleComments.stream()
+                .filter(c -> c.getParent() == null)
+                .map(c -> mapToResponseRecursive(c, childrenMap))
+                .collect(Collectors.toList());
+    }
+
     private CommentResponse mapToResponse(Comment comment) {
-        Chapter chapter = comment.getChapter();
         return CommentResponse.builder()
                 .id(comment.getId())
-                .chapterId(chapter.getId())
-                .chapterTitle(chapter.getTitle())
-                .chapterOrder(chapter.getChapterOrder())
-                .storyId(chapter.getStory().getId())
-                .storyTitle(chapter.getStory().getTitle())
+                .chapterId(comment.getChapter() != null ? comment.getChapter().getId() : null)
+                .chapterTitle(comment.getChapter() != null ? comment.getChapter().getTitle() : null)
+                .chapterOrder(comment.getChapter() != null ? comment.getChapter().getChapterOrder() : null)
+                .storyId(comment.getStory() != null ? comment.getStory().getId() :
+                        (comment.getChapter() != null ? comment.getChapter().getStory().getId() : null))
+                .storyTitle(comment.getStory() != null ? comment.getStory().getTitle() :
+                        (comment.getChapter() != null ? comment.getChapter().getStory().getTitle() : null))
                 .userId(comment.getUser().getId())
                 .userName(comment.getUser().getFullName())
+                .userAvatarUrl(comment.getUser().getAvatarUrl())
                 .content(comment.getContent())
                 .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
                 .hidden(comment.getHidden())
+                .likeCount(comment.getLikeCount())
                 .replies(new ArrayList<>())
                 .createdAt(comment.getCreatedAt())
                 .build();
     }
 
-    /**
-     * Build cây comment đệ quy vô hạn cấp.
-     * childrenMap: parentId → danh sách comment con (đã load sẵn, không query thêm)
-     */
     private CommentResponse mapToResponseRecursive(Comment comment, Map<Long, List<Comment>> childrenMap) {
         CommentResponse response = mapToResponse(comment);
         List<Comment> children = childrenMap.getOrDefault(comment.getId(), new ArrayList<>());
@@ -140,4 +165,3 @@ public class CommentServiceImpl implements CommentService {
         return response;
     }
 }
-

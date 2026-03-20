@@ -22,6 +22,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(unique = true)
+    private String username;
+
     // null nếu login Google
     @Column
     private String password;
@@ -63,6 +66,12 @@ public class User {
     // null = không bị ban, set giá trị = bị ban đến thời điểm đó
     private LocalDateTime banUntil;
 
+    @Column(columnDefinition = "TEXT")
+    private String banReason;
+
+    /** Tổng coin tác giả đã kiếm được từ bán chương + nhận quà */
+    private Long totalEarnedCoin = 0L;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 
@@ -76,13 +85,4 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "story_id")
     )
     private Set<Story> followedStories;
-
-    @ManyToMany
-    @JoinTable(
-            name = "chapter_purchases",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "chapter_id")
-    )
-    private Set<Chapter> purchasedChapters;
 }
-

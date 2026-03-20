@@ -1,6 +1,7 @@
 package org.com.story.service;
 
 import org.com.story.dto.request.StoryRequest;
+import org.com.story.dto.response.ChapterStatsResponse;
 import org.com.story.dto.response.StoryDetailResponse;
 import org.com.story.dto.response.StoryResponse;
 
@@ -24,4 +25,16 @@ public interface StoryService {
     StoryResponse submitForReview(Long id);
 
     List<StoryResponse> searchStories(String keyword);
+
+    /** Trả về số chương published và tổng số chương của một truyện */
+    ChapterStatsResponse getChapterStats(Long storyId);
+
+    // New endpoints
+    List<StoryResponse> getStoriesByCategory(Long categoryId);
+
+    List<StoryResponse> getTopViewedStories();
+
+    List<StoryResponse> getTopRatedStories();
+
+    List<StoryResponse> getCompletedStories();
 }

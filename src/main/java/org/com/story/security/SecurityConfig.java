@@ -61,6 +61,9 @@ public class SecurityConfig {
                         // Allow root path and error page
                         .requestMatchers("/", "/error", "/favicon.ico").permitAll()
 
+                        // Allow public access to uploaded images (avatars, etc.)
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -72,6 +75,10 @@ public class SecurityConfig {
                                 "/api/health",
                                 "/oauth2/**"
                         ).permitAll()
+
+                        // Payment: danh sách gói (public) + IPN webhook (PayOS server gọi)
+                        .requestMatchers(HttpMethod.GET,  "/api/payment/packages").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/payment/ipn").permitAll()
 
                         // Public read access to stories, chapters, categories, comments
                         .requestMatchers(HttpMethod.GET, "/api/stories", "/api/stories/**").permitAll()
@@ -92,6 +99,15 @@ public class SecurityConfig {
                         // Editor endpoints - EDITOR and ADMIN
                         .requestMatchers("/api/editor/**")
                         .hasAnyRole("EDITOR", "ADMIN")
+
+                        // Edit Request - Editor side (nhận việc, nộp bản, xem open)
+                        .requestMatchers(HttpMethod.GET, "/api/edit-requests/open").hasAnyRole("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/edit-requests/assigned").hasAnyRole("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/edit-requests/*/assign").hasAnyRole("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/edit-requests/*/submit").hasAnyRole("EDITOR", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/edit-requests/*/withdraw").hasAnyRole("EDITOR", "ADMIN")
+                        // Edit Request - Author side & general (authenticated)
+                        .requestMatchers("/api/edit-requests/**").authenticated()
 
                         // Category management (POST/PUT/DELETE) - ADMIN only
                         .requestMatchers(HttpMethod.POST, "/api/categories").hasRole("ADMIN")

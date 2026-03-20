@@ -15,6 +15,8 @@ public class WalletResponse {
     private Long userId;
     private String userName;
     private Long balance;
+    /** Coin đang bị khoá bởi EditRequest đang mở */
+    private Long lockedBalance;
     private LocalDateTime updatedAt;
 }
 

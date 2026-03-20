@@ -19,6 +19,7 @@ import org.com.story.repository.RoleRepository;
 import org.com.story.repository.UserRepository;
 import org.com.story.repository.VerificationTokenRepository;
 import org.com.story.repository.WalletRepository;
+import org.com.story.repository.ChapterPurchaseRepository;
 import org.com.story.security.JwtUtil;
 import org.com.story.service.MailService;
 import org.com.story.service.UserService;
@@ -47,6 +48,7 @@ public class UserServiceImpl implements UserService {
     private final VerificationTokenRepository verificationTokenRepository;
     private final MailService mailService;
     private final WalletRepository walletRepository;
+    private final ChapterPurchaseRepository chapterPurchaseRepository;
     private final JwtUtil jwtUtil;
 
     @Value("${app.base-url:http://localhost:8080}")
@@ -73,7 +75,6 @@ public class UserServiceImpl implements UserService {
         user.setEnabled(false); // ⚠️ DISABLED until email verified
         user.setRoles(Set.of(readerRole));
         user.setFollowedStories(new HashSet<>());
-        user.setPurchasedChapters(new HashSet<>());
 
         // Optional profile fields
         if (request.getPhone() != null) {
@@ -95,6 +96,7 @@ public class UserServiceImpl implements UserService {
         Wallet wallet = new Wallet();
         wallet.setUser(savedUser);
         wallet.setBalance(0L);
+        wallet.setLockedBalance(0L);
         walletRepository.save(wallet);
 
         // Send verification email
@@ -140,7 +142,6 @@ public class UserServiceImpl implements UserService {
         user.setEnabled(false); // ⚠️ DISABLED until OTP verified
         user.setRoles(Set.of(readerRole));
         user.setFollowedStories(new HashSet<>());
-        user.setPurchasedChapters(new HashSet<>());
 
         if (request.getPhone() != null) user.setPhone(request.getPhone());
         if (request.getDateOfBirth() != null) user.setDateOfBirth(request.getDateOfBirth());
@@ -153,6 +154,7 @@ public class UserServiceImpl implements UserService {
         Wallet wallet = new Wallet();
         wallet.setUser(savedUser);
         wallet.setBalance(0L);
+        wallet.setLockedBalance(0L);
         walletRepository.save(wallet);
 
         // Gửi OTP
@@ -278,7 +280,7 @@ public class UserServiceImpl implements UserService {
                 .orElse(0L);
 
         int followedStories = userRepository.countFollowedStories(user.getId());
-        int purchasedChapters = userRepository.countPurchasedChapters(user.getId());
+        int purchasedChapters = (int) chapterPurchaseRepository.countByUserId(user.getId());
 
         return UserResponse.builder()
                 .id(user.getId())

@@ -16,7 +16,19 @@ public class WithdrawRequestResponse {
     private Long userId;
     private String userName;
     private Long amount;
-    private String status;
+    private String status;        // PENDING | APPROVED | REJECTED
+
+    // Thông tin ngân hàng
+    private String bankName;
+    private String bankAccount;
+    private String bankOwner;
+    private String note;
+
+    // Admin xử lý
+    private Long processedById;
+    private String processedByName;
+    private LocalDateTime processedAt;
+    private String rejectedReason;
+
     private LocalDateTime createdAt;
 }
-

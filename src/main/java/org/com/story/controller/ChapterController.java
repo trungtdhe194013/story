@@ -1,5 +1,8 @@
 package org.com.story.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.ChapterRequest;
@@ -13,57 +16,73 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/chapters")
 @RequiredArgsConstructor
+@Tag(name = "Chapter Controller", description = "Quản lý chương truyện")
 public class ChapterController {
 
     private final ChapterService chapterService;
 
-    // Get chapter detail (public/protected based on access)
     @GetMapping("/{id}")
+    @Operation(summary = "Get chapter detail")
     public ChapterResponse getChapter(@PathVariable Long id) {
-
         return chapterService.getChapter(id);
     }
 
-    // Get chapters by story
     @GetMapping("/story/{storyId}")
+    @Operation(summary = "Get chapters by story")
     public List<ChapterResponse> getChaptersByStory(@PathVariable Long storyId) {
         return chapterService.getChaptersByStory(storyId);
     }
 
-    // Create new chapter (author only)
     @PostMapping("/story/{storyId}")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Create chapter (AUTHOR only)", security = @SecurityRequirement(name = "bearerAuth"))
     public ChapterResponse createChapter(
             @PathVariable Long storyId,
             @Valid @RequestBody ChapterRequest request) {
         return chapterService.createChapter(storyId, request);
     }
 
-    // Update chapter (author only)
     @PutMapping("/{id}")
+    @Operation(summary = "Update chapter (AUTHOR only)", security = @SecurityRequirement(name = "bearerAuth"))
     public ChapterResponse updateChapter(
             @PathVariable Long id,
             @Valid @RequestBody ChapterRequest request) {
         return chapterService.updateChapter(id, request);
     }
 
-    // Delete chapter (author only)
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Delete chapter (AUTHOR only)", security = @SecurityRequirement(name = "bearerAuth"))
     public void deleteChapter(@PathVariable Long id) {
-
         chapterService.deleteChapter(id);
     }
 
-    // Publish chapter (author only)
-    @PostMapping("/{id}/publish")
-    public ChapterResponse publishChapter(@PathVariable Long id) {
-
-        return chapterService.publishChapter(id);
+    /**
+     * Author nộp chapter lên Reviewer duyệt.
+     * Status: DRAFT hoặc EDITED → PENDING_REVIEW
+     */
+    @PostMapping("/{id}/submit")
+    @Operation(summary = "Submit chapter for review (AUTHOR only)",
+            description = "Nộp chapter lên Reviewer duyệt. Chapter phải đang ở DRAFT hoặc EDITED.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public ChapterResponse submitForReview(@PathVariable Long id) {
+        return chapterService.submitForReview(id);
     }
 
-    // Purchase chapter (reader)
+    /**
+     * Author tự publish chapter sau khi Reviewer đã APPROVE.
+     * Status: APPROVED → PUBLISHED
+     */
+    @PostMapping("/{id}/publish")
+    @Operation(summary = "Publish approved chapter (AUTHOR only)",
+            description = "Publish chapter sau khi đã được Reviewer APPROVE. Author quyết định thời điểm lên sóng.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public ChapterResponse publishApprovedChapter(@PathVariable Long id) {
+        return chapterService.publishApprovedChapter(id);
+    }
+
     @PostMapping("/{id}/purchase")
+    @Operation(summary = "Purchase chapter (READER)", security = @SecurityRequirement(name = "bearerAuth"))
     public ChapterResponse purchaseChapter(@PathVariable Long id) {
 
         return chapterService.purchaseChapter(id);

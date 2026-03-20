@@ -25,10 +25,12 @@ public class CommentResponse {
     // Thông tin người comment
     private Long userId;
     private String userName;
+    private String userAvatarUrl;
 
     private String content;
     private Long parentId;
     private List<CommentResponse> replies;
     private Boolean hidden;
+    private Long likeCount;
     private LocalDateTime createdAt;
 }

@@ -36,22 +36,24 @@ public class FollowServiceImpl implements FollowService {
         if (isFollowing) {
             currentUser.getFollowedStories().remove(story);
             userRepository.save(currentUser);
-
+            long followCount = userRepository.countFollowersByStoryId(storyId);
             return FollowResponse.builder()
                     .storyId(storyId)
                     .storyTitle(story.getTitle())
                     .status("UNFOLLOWED")
                     .message("Đã bỏ theo dõi truyện: " + story.getTitle())
+                    .followCount(followCount)
                     .build();
         } else {
             currentUser.getFollowedStories().add(story);
             userRepository.save(currentUser);
-
+            long followCount = userRepository.countFollowersByStoryId(storyId);
             return FollowResponse.builder()
                     .storyId(storyId)
                     .storyTitle(story.getTitle())
                     .status("FOLLOWED")
                     .message("Đã theo dõi truyện: " + story.getTitle())
+                    .followCount(followCount)
                     .build();
         }
     }
@@ -73,7 +75,14 @@ public class FollowServiceImpl implements FollowService {
                 .anyMatch(s -> s.getId().equals(storyId));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public long getFollowCount(Long storyId) {
+        return userRepository.countFollowersByStoryId(storyId);
+    }
+
     private StoryResponse mapStoryToResponse(Story story) {
+        long followCount = userRepository.countFollowersByStoryId(story.getId());
         return StoryResponse.builder()
                 .id(story.getId())
                 .title(story.getTitle())
@@ -82,6 +91,8 @@ public class FollowServiceImpl implements FollowService {
                 .status(story.getStatus())
                 .authorId(story.getAuthor().getId())
                 .authorName(story.getAuthor().getFullName())
+                .followCount(followCount)
+                .isFollowing(true) // danh sách followed của user hiện tại → luôn đang follow
                 .createdAt(story.getCreatedAt())
                 .updatedAt(story.getUpdatedAt())
                 .build();

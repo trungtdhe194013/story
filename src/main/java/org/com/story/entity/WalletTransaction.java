@@ -28,9 +28,19 @@ public class WalletTransaction {
 
     private Long amount;
 
-    private String type; // TOPUP, BUY, GIFT, REWARD
+    private String type; // TOPUP, BUY, GIFT, REWARD, LOCKED, EDIT_REWARD_PAID, EDIT_REWARD_RECEIVED, EDIT_REFUND, WITHDRAW
+
+    /** Loại tham chiếu: CHAPTER, GIFT, MISSION, EDIT_REQUEST, WITHDRAW ... */
+    private String refType;
 
     private Long refId;
+
+    /** Số dư ví sau giao dịch */
+    private Long balanceAfter;
+
+    /** Mô tả chi tiết giao dịch */
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

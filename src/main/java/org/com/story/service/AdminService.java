@@ -5,6 +5,7 @@ import org.com.story.dto.request.ReviewStoryRequest;
 import org.com.story.dto.request.UpdateUserRoleRequest;
 import org.com.story.dto.response.ChapterResponse;
 import org.com.story.dto.response.DashboardStatsResponse;
+import org.com.story.dto.response.StoryDetailResponse;
 import org.com.story.dto.response.StoryResponse;
 import org.com.story.dto.response.UserResponse;
 
@@ -17,6 +18,10 @@ public interface AdminService {
     // Chapter review
     List<ChapterResponse> getPendingChaptersForReview();
     ChapterResponse reviewChapter(Long chapterId, ReviewChapterRequest request);
+
+    // Reviewer đọc nội dung đầy đủ trước khi duyệt
+    StoryDetailResponse getStoryDetailForReview(Long storyId);
+    ChapterResponse getChapterForReview(Long chapterId);
 
     UserResponse updateUserRoles(UpdateUserRoleRequest request);
     List<UserResponse> getAllUsers();

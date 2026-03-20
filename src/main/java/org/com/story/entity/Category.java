@@ -25,4 +25,15 @@ public class Category {
 
     @Column(unique = true)
     private String name;
+
+    /** URL-friendly slug */
+    @Column(unique = true)
+    private String slug;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    private String thumbnailUrl;
+
+    private Integer displayOrder = 0;
 }
