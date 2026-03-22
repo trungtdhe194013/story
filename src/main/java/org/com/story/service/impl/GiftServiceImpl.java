@@ -15,6 +15,8 @@ import org.com.story.repository.WalletRepository;
 import org.com.story.service.GiftService;
 import org.com.story.service.UserService;
 import org.com.story.service.WalletService;
+import org.com.story.service.NotificationService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,8 @@ public class GiftServiceImpl implements GiftService {
     private final WalletRepository walletRepository;
     private final UserService userService;
     private final WalletService walletService;
+    @Lazy
+    private final NotificationService notificationService;
 
     @Override
     public GiftResponse sendGift(GiftRequest request) {
@@ -81,6 +85,18 @@ public class GiftServiceImpl implements GiftService {
         // Ghi giao dịch
         walletService.createTransaction(sender.getId(), -request.getAmount(), "GIFT", savedGift.getId());
         walletService.createTransaction(receiver.getId(), request.getAmount(), "GIFT", savedGift.getId());
+
+        // Gửi notification cho người nhận quà (tác giả)
+        try {
+            notificationService.sendNotification(
+                    receiver,
+                    "GIFT_RECEIVED",
+                    "Bạn nhận được quà tặng 🎁",
+                    sender.getFullName() + " vừa tặng bạn " + request.getAmount() +
+                            " coin cho truyện '" + story.getTitle() + "'.",
+                    savedGift.getId(), "GIFT"
+            );
+        } catch (Exception ignored) {}
 
         return mapToResponse(savedGift);
     }

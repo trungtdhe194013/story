@@ -30,6 +30,8 @@ import org.com.story.repository.ReportRepository;
 import org.com.story.repository.WithdrawRequestRepository;
 import org.com.story.service.AdminService;
 import org.com.story.service.UserService;
+import org.com.story.service.NotificationService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +55,8 @@ public class AdminServiceImpl implements AdminService {
     private final CategoryRepository categoryRepository;
     private final ReportRepository reportRepository;
     private final WithdrawRequestRepository withdrawRequestRepository;
+    @Lazy
+    private final NotificationService notificationService;
 
     @Override
     public List<StoryResponse> getPendingStories() {
@@ -95,13 +99,38 @@ public class AdminServiceImpl implements AdminService {
         review.setNote(request.getNote());
         adminReviewRepository.save(review);
 
+        // Gửi notification cho tác giả
+        User author = story.getAuthor();
+        try {
+            if ("APPROVE".equals(request.getAction())) {
+                notificationService.sendNotification(
+                        author,
+                        "STORY_APPROVED",
+                        "Truyện của bạn đã được duyệt ✅",
+                        "Truyện '" + story.getTitle() + "' đã được Reviewer chấp nhận. Bạn có thể bắt đầu nộp chương để xuất bản.",
+                        story.getId(), "STORY"
+                );
+            } else {
+                String reason = (request.getNote() != null && !request.getNote().isBlank())
+                        ? " Lý do: " + request.getNote()
+                        : "";
+                notificationService.sendNotification(
+                        author,
+                        "STORY_REJECTED",
+                        "Truyện của bạn bị từ chối ❌",
+                        "Truyện '" + story.getTitle() + "' đã bị Reviewer từ chối." + reason,
+                        story.getId(), "STORY"
+                );
+            }
+        } catch (Exception ignored) {}
+
         return mapStoryToResponse(updatedStory);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ChapterResponse> getPendingChaptersForReview() {
-        return chapterRepository.findByStatus("PENDING_REVIEW")
+        return chapterRepository.findByStatus("PENDING")
                 .stream()
                 .map(this::mapChapterToResponse)
                 .collect(Collectors.toList());
@@ -113,8 +142,8 @@ public class AdminServiceImpl implements AdminService {
         Chapter chapter = chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new NotFoundException("Chapter not found"));
 
-        if (!"PENDING_REVIEW".equals(chapter.getStatus())) {
-            throw new BadRequestException("Chapter is not in PENDING_REVIEW status. Current status: " + chapter.getStatus());
+        if (!"PENDING".equals(chapter.getStatus())) {
+            throw new BadRequestException("Chapter is not in PENDING status. Current status: " + chapter.getStatus());
         }
 
         if (!request.getAction().equals("APPROVE") && !request.getAction().equals("REJECT")) {
@@ -122,8 +151,9 @@ public class AdminServiceImpl implements AdminService {
         }
 
         if ("APPROVE".equals(request.getAction())) {
-            // Reviewer chỉ DUYỆT — Author tự quyết định khi publish
+            // Reviewer DUYỆT → Author tự publish sau
             chapter.setStatus("APPROVED");
+            chapter.setReviewNote(null);
         } else {
             // REJECT → trả về DRAFT để author sửa lại, lưu lý do
             chapter.setStatus("DRAFT");
@@ -140,6 +170,34 @@ public class AdminServiceImpl implements AdminService {
         review.setAction(request.getAction());
         review.setNote(request.getNote());
         adminReviewRepository.save(review);
+
+        // Gửi notification cho tác giả
+        User author = chapter.getStory().getAuthor();
+        String storyTitle = chapter.getStory().getTitle();
+        try {
+            if ("APPROVE".equals(request.getAction())) {
+                notificationService.sendNotification(
+                        author,
+                        "CHAPTER_APPROVED",
+                        "Chương truyện được duyệt ✅",
+                        "Chương '" + chapter.getTitle() + "' của truyện '" + storyTitle +
+                        "' đã được Reviewer chấp nhận. Hãy vào trang của bạn để tự xuất bản chương này.",
+                        chapter.getId(), "CHAPTER"
+                );
+            } else {
+                String reason = (request.getNote() != null && !request.getNote().isBlank())
+                        ? " Lý do: " + request.getNote()
+                        : "";
+                notificationService.sendNotification(
+                        author,
+                        "CHAPTER_REJECTED",
+                        "Chương truyện bị từ chối ❌",
+                        "Chương '" + chapter.getTitle() + "' của truyện '" + storyTitle +
+                        "' đã bị Reviewer từ chối." + reason + " Hãy sửa lại và nộp duyệt lại.",
+                        chapter.getId(), "CHAPTER"
+                );
+            }
+        } catch (Exception ignored) {}
 
         return mapChapterToResponse(chapter);
     }

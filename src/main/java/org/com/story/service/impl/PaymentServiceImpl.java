@@ -17,6 +17,8 @@ import org.com.story.repository.WalletRepository;
 import org.com.story.service.PaymentService;
 import org.com.story.service.UserService;
 import org.com.story.service.WalletService;
+import org.com.story.service.NotificationService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -42,6 +44,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final WalletService walletService;
     private final UserService userService;
     private final RestTemplate restTemplate;
+    @Lazy
+    private final NotificationService notificationService;
 
     private static final String PAYOS_API = "https://api-merchant.payos.vn";
 
@@ -350,6 +354,18 @@ public class PaymentServiceImpl implements PaymentService {
         order.setStatus("PAID");
         order.setPaidAt(LocalDateTime.now());
         paymentOrderRepository.save(order);
+
+        // Gửi notification cho user
+        try {
+            notificationService.sendNotification(
+                    order.getUser(),
+                    "SYSTEM",
+                    "Nạp coin thành công 💰",
+                    "Bạn đã nạp thành công " + order.getCoinAmount() + " coin vào tài khoản. " +
+                            "Số tiền thanh toán: " + String.format("%,d", order.getAmountVnd()) + " VND.",
+                    order.getId(), "PAYMENT"
+            );
+        } catch (Exception ignored) {}
 
         log.info("creditCoins: orderCode={}, +{} coins → userId={}",
                 order.getOrderCode(), order.getCoinAmount(), order.getUser().getId());

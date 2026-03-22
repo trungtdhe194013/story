@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.com.story.dto.response.NotificationResponse;
 import org.com.story.entity.Notification;
 import org.com.story.entity.User;
+import org.com.story.exception.NotFoundException;
 import org.com.story.repository.NotificationRepository;
 import org.com.story.repository.UserRepository;
 import org.com.story.service.NotificationService;
@@ -17,7 +18,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
@@ -26,6 +26,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Async
+    @Transactional
     public void sendNotification(User user, String type, String title, String message, Long refId, String refType) {
         Notification notification = Notification.builder()
                 .user(user)
@@ -41,20 +42,24 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Async
+    @Transactional
     public void sendToFollowers(Long storyId, String type, String title, String message, Long refId, String refType) {
         List<User> followers = userRepository.findFollowersByStoryId(storyId);
-        for (User follower : followers) {
-            Notification notification = Notification.builder()
-                    .user(follower)
-                    .type(type)
-                    .title(title)
-                    .message(message)
-                    .refId(refId)
-                    .refType(refType)
-                    .isRead(false)
-                    .build();
-            notificationRepository.save(notification);
-        }
+        if (followers.isEmpty()) return;
+
+        List<Notification> notifications = followers.stream()
+                .map(follower -> Notification.builder()
+                        .user(follower)
+                        .type(type)
+                        .title(title)
+                        .message(message)
+                        .refId(refId)
+                        .refType(refType)
+                        .isRead(false)
+                        .build())
+                .collect(Collectors.toList());
+
+        notificationRepository.saveAll(notifications);
     }
 
     @Override
@@ -73,9 +78,29 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional
     public void markAllAsRead() {
         User currentUser = userService.getCurrentUser();
         notificationRepository.markAllAsRead(currentUser.getId());
+    }
+
+    @Override
+    @Transactional
+    public NotificationResponse markAsRead(Long id) {
+        User currentUser = userService.getCurrentUser();
+        Notification notification = notificationRepository.findByIdAndUserId(id, currentUser.getId())
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy thông báo với id: " + id));
+        notification.setIsRead(true);
+        return mapToResponse(notificationRepository.save(notification));
+    }
+
+    @Override
+    @Transactional
+    public void deleteNotification(Long id) {
+        User currentUser = userService.getCurrentUser();
+        Notification notification = notificationRepository.findByIdAndUserId(id, currentUser.getId())
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy thông báo với id: " + id));
+        notificationRepository.delete(notification);
     }
 
     private NotificationResponse mapToResponse(Notification n) {
@@ -91,4 +116,3 @@ public class NotificationServiceImpl implements NotificationService {
                 .build();
     }
 }
-
