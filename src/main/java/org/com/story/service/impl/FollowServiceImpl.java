@@ -9,7 +9,9 @@ import org.com.story.exception.NotFoundException;
 import org.com.story.repository.StoryRepository;
 import org.com.story.repository.UserRepository;
 import org.com.story.service.FollowService;
+import org.com.story.service.NotificationService;
 import org.com.story.service.UserService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,8 @@ public class FollowServiceImpl implements FollowService {
     private final StoryRepository storyRepository;
     private final UserRepository userRepository;
     private final UserService userService;
+    @Lazy
+    private final NotificationService notificationService;
 
     @Override
     public FollowResponse toggleFollow(Long storyId) {
@@ -34,6 +38,7 @@ public class FollowServiceImpl implements FollowService {
         boolean isFollowing = currentUser.getFollowedStories().contains(story);
 
         if (isFollowing) {
+            // ── UNFOLLOW ──────────────────────────────────────────────────────
             currentUser.getFollowedStories().remove(story);
             userRepository.save(currentUser);
             long followCount = userRepository.countFollowersByStoryId(storyId);
@@ -45,9 +50,27 @@ public class FollowServiceImpl implements FollowService {
                     .followCount(followCount)
                     .build();
         } else {
+            // ── FOLLOW ────────────────────────────────────────────────────────
             currentUser.getFollowedStories().add(story);
             userRepository.save(currentUser);
             long followCount = userRepository.countFollowersByStoryId(storyId);
+
+            // Thông báo cho tác giả — bỏ qua nếu tác giả tự follow truyện mình
+            User author = story.getAuthor();
+            if (!author.getId().equals(currentUser.getId())) {
+                try {
+                    notificationService.sendNotification(
+                            author,
+                            "NEW_FOLLOWER",
+                            "Có người mới theo dõi truyện của bạn! 👥",
+                            currentUser.getFullName() + " vừa theo dõi truyện '"
+                                    + story.getTitle() + "'. Tổng: " + followCount + " người.",
+                            story.getId(),
+                            "STORY"
+                    );
+                } catch (Exception ignored) {}
+            }
+
             return FollowResponse.builder()
                     .storyId(storyId)
                     .storyTitle(story.getTitle())
@@ -92,10 +115,9 @@ public class FollowServiceImpl implements FollowService {
                 .authorId(story.getAuthor().getId())
                 .authorName(story.getAuthor().getFullName())
                 .followCount(followCount)
-                .isFollowing(true) // danh sách followed của user hiện tại → luôn đang follow
+                .isFollowing(true)
                 .createdAt(story.getCreatedAt())
                 .updatedAt(story.getUpdatedAt())
                 .build();
     }
 }
-

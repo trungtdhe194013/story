@@ -33,6 +33,7 @@ public class NotificationController {
                     - `CHAPTER_APPROVED`  — Chương truyện được Reviewer duyệt (Author tự publish)
                     - `CHAPTER_REJECTED`  — Chương bị từ chối, kèm lý do để sửa lại
                     - `GIFT_RECEIVED`     — Có người tặng quà cho truyện của bạn
+                    - `NEW_FOLLOWER`      — Có người mới follow truyện của bạn
                     - `SYSTEM`            — Thông báo hệ thống từ Admin
                     
                     **refType:** `STORY`, `CHAPTER`, `GIFT`, `SYSTEM`

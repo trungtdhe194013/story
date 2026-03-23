@@ -23,8 +23,14 @@ public class Notification {
 
     /**
      * Loại thông báo:
-     * NEW_CHAPTER, STORY_APPROVED, STORY_REJECTED, CHAPTER_APPROVED, CHAPTER_REJECTED,
-     * GIFT_RECEIVED, SYSTEM
+     * NEW_CHAPTER       — Truyện đang follow có chương mới được publish
+     * STORY_APPROVED    — Story của bạn vừa được Reviewer duyệt
+     * STORY_REJECTED    — Story của bạn bị từ chối
+     * CHAPTER_APPROVED  — Chapter được Reviewer APPROVE (Author tự publish sau)
+     * CHAPTER_REJECTED  — Chapter bị từ chối kèm lý do
+     * GIFT_RECEIVED     — Có người tặng quà cho truyện của bạn
+     * NEW_FOLLOWER      — Có người mới follow truyện của bạn
+     * SYSTEM            — Thông báo hệ thống từ Admin
      */
     @Column(nullable = false)
     private String type;

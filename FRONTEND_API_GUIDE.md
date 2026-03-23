@@ -453,15 +453,16 @@ Trừ coin từ ví, ghi nhận mua chương.
 ```
 
 **Các loại `type`:**
-| type | Mô tả | refType | refId |
-|------|-------|---------|-------|
-| `NEW_CHAPTER` | Truyện follow có chương mới | `CHAPTER` | chapterId |
-| `STORY_APPROVED` | Story được Reviewer duyệt | `STORY` | storyId |
-| `STORY_REJECTED` | Story bị từ chối | `STORY` | storyId |
-| `CHAPTER_APPROVED` | Chapter được duyệt (Author tự publish) | `CHAPTER` | chapterId |
-| `CHAPTER_REJECTED` | Chapter bị từ chối, kèm lý do | `CHAPTER` | chapterId |
-| `GIFT_RECEIVED` | Có người tặng quà | `GIFT` | giftId |
-| `SYSTEM` | Thông báo từ Admin | `SYSTEM` | null |
+| type | Mô tả | refType | refId | Ai nhận |
+|------|-------|---------|-------|---------|
+| `NEW_CHAPTER` | Truyện follow có chương mới | `CHAPTER` | chapterId | Followers |
+| `STORY_APPROVED` | Story được Reviewer duyệt | `STORY` | storyId | Author |
+| `STORY_REJECTED` | Story bị từ chối | `STORY` | storyId | Author |
+| `CHAPTER_APPROVED` | Chapter được duyệt (Author tự publish) | `CHAPTER` | chapterId | Author |
+| `CHAPTER_REJECTED` | Chapter bị từ chối, kèm lý do | `CHAPTER` | chapterId | Author |
+| `GIFT_RECEIVED` | Có người tặng quà | `GIFT` | giftId | Author |
+| `NEW_FOLLOWER` | Có người mới follow truyện của bạn | `STORY` | storyId | Author |
+| `SYSTEM` | Thông báo từ Admin | `SYSTEM` | null | Chỉ định |
 
 ### `GET /api/notifications/unread-count` — Số thông báo chưa đọc
 ```json
