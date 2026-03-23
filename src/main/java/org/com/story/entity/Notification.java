@@ -30,6 +30,9 @@ public class Notification {
      * CHAPTER_REJECTED  — Chapter bị từ chối kèm lý do
      * GIFT_RECEIVED     — Có người tặng quà cho truyện của bạn
      * NEW_FOLLOWER      — Có người mới follow truyện của bạn
+     * MISSION_COMPLETED — Hoàn thành nhiệm vụ và nhận thưởng coin
+     * STREAK_CHECKIN    — Check-in hàng ngày thành công (ngày bình thường)
+     * STREAK_MILESTONE  — Đạt mốc streak đặc biệt (ngày 3, 7, 14, 30, 100)
      * SYSTEM            — Thông báo hệ thống từ Admin
      */
     @Column(nullable = false)

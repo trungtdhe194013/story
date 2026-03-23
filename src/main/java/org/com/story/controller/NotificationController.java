@@ -27,16 +27,19 @@ public class NotificationController {
                     Trả về toàn bộ thông báo của user hiện tại, sắp xếp mới nhất lên đầu.
                     
                     **Các loại type:**
-                    - `NEW_CHAPTER`       — Truyện đang follow có chương mới được publish
-                    - `STORY_APPROVED`    — Story của bạn vừa được Reviewer duyệt
-                    - `STORY_REJECTED`    — Story của bạn bị từ chối, kèm lý do
-                    - `CHAPTER_APPROVED`  — Chương truyện được Reviewer duyệt (Author tự publish)
-                    - `CHAPTER_REJECTED`  — Chương bị từ chối, kèm lý do để sửa lại
-                    - `GIFT_RECEIVED`     — Có người tặng quà cho truyện của bạn
-                    - `NEW_FOLLOWER`      — Có người mới follow truyện của bạn
-                    - `SYSTEM`            — Thông báo hệ thống từ Admin
+                    - `NEW_CHAPTER`        — Truyện đang follow có chương mới được publish
+                    - `STORY_APPROVED`     — Story của bạn vừa được Reviewer duyệt
+                    - `STORY_REJECTED`     — Story của bạn bị từ chối, kèm lý do
+                    - `CHAPTER_APPROVED`   — Chương truyện được Reviewer duyệt (Author tự publish)
+                    - `CHAPTER_REJECTED`   — Chương bị từ chối, kèm lý do để sửa lại
+                    - `GIFT_RECEIVED`      — Có người tặng quà cho truyện của bạn
+                    - `NEW_FOLLOWER`       — Có người mới follow truyện của bạn
+                    - `MISSION_COMPLETED`  — Bạn vừa hoàn thành nhiệm vụ và nhận coin
+                    - `STREAK_CHECKIN`     — Check-in hàng ngày thành công (ngày bình thường)
+                    - `STREAK_MILESTONE`   — Đạt mốc streak đặc biệt (ngày 3, 7, 14, 30, 100)
+                    - `SYSTEM`             — Thông báo hệ thống từ Admin
                     
-                    **refType:** `STORY`, `CHAPTER`, `GIFT`, `SYSTEM`
+                    **refType:** `STORY`, `CHAPTER`, `GIFT`, `MISSION`, `SYSTEM`
                     """,
             security = @SecurityRequirement(name = "bearerAuth")
     )

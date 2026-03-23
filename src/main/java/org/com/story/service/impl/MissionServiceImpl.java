@@ -13,8 +13,10 @@ import org.com.story.repository.MissionRepository;
 import org.com.story.repository.UserMissionRepository;
 import org.com.story.repository.WalletRepository;
 import org.com.story.service.MissionService;
+import org.com.story.service.NotificationService;
 import org.com.story.service.UserService;
 import org.com.story.service.WalletService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,8 @@ public class MissionServiceImpl implements MissionService {
     private final WalletRepository walletRepository;
     private final UserService userService;
     private final WalletService walletService;
+    @Lazy
+    private final NotificationService notificationService;
 
     @Override
     public MissionResponse createMission(MissionRequest request) {
@@ -153,6 +157,19 @@ public class MissionServiceImpl implements MissionService {
 
         // Ghi giao dịch
         walletService.createTransaction(currentUser.getId(), mission.getRewardCoin(), "REWARD", mission.getId());
+
+        // Gửi thông báo nhận thưởng nhiệm vụ
+        try {
+            notificationService.sendNotification(
+                    currentUser,
+                    "MISSION_COMPLETED",
+                    "Hoàn thành nhiệm vụ! 🎯",
+                    "Bạn đã hoàn thành nhiệm vụ '" + mission.getName()
+                            + "' và nhận được " + mission.getRewardCoin() + " coin.",
+                    mission.getId(),
+                    "MISSION"
+            );
+        } catch (Exception ignored) {}
 
         return mapToResponse(mission, true);
     }

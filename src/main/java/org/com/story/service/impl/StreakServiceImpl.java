@@ -6,13 +6,16 @@ import org.com.story.entity.*;
 import org.com.story.exception.BadRequestException;
 import org.com.story.repository.*;
 import org.com.story.service.StreakService;
+import org.com.story.service.NotificationService;
 import org.com.story.service.UserService;
 import org.com.story.service.WalletService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +28,11 @@ public class StreakServiceImpl implements StreakService {
     private final WalletRepository walletRepository;
     private final UserService userService;
     private final WalletService walletService;
+    @Lazy
+    private final NotificationService notificationService;
+
+    /** Các mốc streak đặc biệt */
+    private static final Set<Integer> MILESTONE_DAYS = Set.of(3, 7, 14, 30, 100);
 
     @Override
     public StreakResponse checkIn() {
@@ -75,6 +83,34 @@ public class StreakServiceImpl implements StreakService {
             walletRepository.save(wallet);
             walletService.createTransaction(currentUser.getId(), coinEarned, "REWARD", null);
         }
+
+        // Gửi thông báo check-in
+        int currentStreakDay = streak.getCurrentStreak();
+        try {
+            if (MILESTONE_DAYS.contains(currentStreakDay)) {
+                // Mốc đặc biệt → thông báo ăn mừng
+                notificationService.sendNotification(
+                        currentUser,
+                        "STREAK_MILESTONE",
+                        "🎉 Mốc streak " + currentStreakDay + " ngày!",
+                        "Tuyệt vời! Bạn đã duy trì streak " + currentStreakDay
+                                + " ngày liên tiếp và nhận được " + coinEarned + " coin thưởng đặc biệt!",
+                        null,
+                        "SYSTEM"
+                );
+            } else {
+                // Check-in bình thường
+                notificationService.sendNotification(
+                        currentUser,
+                        "STREAK_CHECKIN",
+                        "✅ Check-in thành công! (Ngày " + currentStreakDay + ")",
+                        "Bạn đã check-in hôm nay và nhận được " + coinEarned
+                                + " coin. Tiếp tục duy trì streak nhé!",
+                        null,
+                        "SYSTEM"
+                );
+            }
+        } catch (Exception ignored) {}
 
         return StreakResponse.builder()
                 .currentStreak(streak.getCurrentStreak())

@@ -461,7 +461,10 @@ Trừ coin từ ví, ghi nhận mua chương.
 | `CHAPTER_APPROVED` | Chapter được duyệt (Author tự publish) | `CHAPTER` | chapterId | Author |
 | `CHAPTER_REJECTED` | Chapter bị từ chối, kèm lý do | `CHAPTER` | chapterId | Author |
 | `GIFT_RECEIVED` | Có người tặng quà | `GIFT` | giftId | Author |
-| `NEW_FOLLOWER` | Có người mới follow truyện của bạn | `STORY` | storyId | Author |
+| `NEW_FOLLOWER` | Có người mới follow truyện | `STORY` | storyId | Author |
+| `MISSION_COMPLETED` | Hoàn thành nhiệm vụ, nhận coin | `MISSION` | missionId | User |
+| `STREAK_CHECKIN` | Check-in ngày bình thường | `SYSTEM` | null | User |
+| `STREAK_MILESTONE` | Đạt mốc streak đặc biệt (ngày 3/7/14/30/100) | `SYSTEM` | null | User |
 | `SYSTEM` | Thông báo từ Admin | `SYSTEM` | null | Chỉ định |
 
 ### `GET /api/notifications/unread-count` — Số thông báo chưa đọc
