@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.ReviewChapterRequest;
 import org.com.story.dto.request.ReviewStoryRequest;
 import org.com.story.dto.response.ChapterResponse;
+import org.com.story.dto.response.ReviewHistoryResponse;
 import org.com.story.dto.response.StoryDetailResponse;
 import org.com.story.dto.response.StoryResponse;
 import org.com.story.service.AdminService;
@@ -78,5 +79,55 @@ public class ReviewerController {
             @Valid @RequestBody ReviewChapterRequest request) {
         return adminService.reviewChapter(id, request);
     }
-}
 
+    // ============== REVIEW HISTORY ==============
+
+    @GetMapping("/history")
+    @Operation(summary = "Lịch sử duyệt của tôi (tất cả)",
+            description = """
+                    Trả về toàn bộ lịch sử duyệt (STORY + CHAPTER) của reviewer đang đăng nhập,
+                    sắp xếp mới nhất lên đầu.
+
+                    Mỗi record gồm: targetType, targetTitle, storyTitle (nếu là chapter),
+                    action (APPROVE/REJECT), note (lý do từ chối), currentStatus, thời gian duyệt.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<ReviewHistoryResponse> getMyHistory() {
+        return adminService.getMyReviewHistory();
+    }
+
+    @GetMapping("/history/stories")
+    @Operation(summary = "Lịch sử duyệt story của tôi",
+            description = "Chỉ lấy lịch sử duyệt **STORY** của reviewer đang đăng nhập.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<ReviewHistoryResponse> getMyStoryHistory() {
+        return adminService.getMyReviewHistoryByType("STORY");
+    }
+
+    @GetMapping("/history/chapters")
+    @Operation(summary = "Lịch sử duyệt chapter của tôi",
+            description = "Chỉ lấy lịch sử duyệt **CHAPTER** của reviewer đang đăng nhập.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<ReviewHistoryResponse> getMyChapterHistory() {
+        return adminService.getMyReviewHistoryByType("CHAPTER");
+    }
+
+    @GetMapping("/history/story/{storyId}")
+    @Operation(summary = "Lịch sử duyệt của 1 story cụ thể",
+            description = """
+                    Xem ai đã duyệt story này, vào thời điểm nào, kết quả gì.
+                    Hữu ích để tra cứu lịch sử review của 1 truyện.
+                    """,
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<ReviewHistoryResponse> getStoryHistory(@PathVariable Long storyId) {
+        return adminService.getStoryReviewHistory(storyId);
+    }
+
+    @GetMapping("/history/chapter/{chapterId}")
+    @Operation(summary = "Lịch sử duyệt của 1 chapter cụ thể",
+            description = "Xem ai đã duyệt chapter này, vào thời điểm nào, kết quả gì.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<ReviewHistoryResponse> getChapterHistory(@PathVariable Long chapterId) {
+        return adminService.getChapterReviewHistory(chapterId);
+    }
+}

@@ -5,6 +5,7 @@ import org.com.story.dto.request.ReviewStoryRequest;
 import org.com.story.dto.request.UpdateUserRoleRequest;
 import org.com.story.dto.response.ChapterResponse;
 import org.com.story.dto.response.DashboardStatsResponse;
+import org.com.story.dto.response.ReviewHistoryResponse;
 import org.com.story.dto.response.StoryDetailResponse;
 import org.com.story.dto.response.StoryResponse;
 import org.com.story.dto.response.UserResponse;
@@ -23,6 +24,24 @@ public interface AdminService {
     StoryDetailResponse getStoryDetailForReview(Long storyId);
     ChapterResponse getChapterForReview(Long chapterId);
 
+    // ─── Lịch sử duyệt ───────────────────────────────────────────────────────────
+
+    /** Lịch sử duyệt của reviewer đang đăng nhập (tất cả STORY + CHAPTER) */
+    List<ReviewHistoryResponse> getMyReviewHistory();
+
+    /** Lịch sử duyệt của reviewer đang đăng nhập, lọc theo loại: STORY hoặc CHAPTER */
+    List<ReviewHistoryResponse> getMyReviewHistoryByType(String targetType);
+
+    /** Lịch sử duyệt của 1 story cụ thể (ai duyệt, bao giờ, kết quả gì) */
+    List<ReviewHistoryResponse> getStoryReviewHistory(Long storyId);
+
+    /** Lịch sử duyệt của 1 chapter cụ thể */
+    List<ReviewHistoryResponse> getChapterReviewHistory(Long chapterId);
+
+    /** [Admin] Xem toàn bộ lịch sử duyệt của hệ thống */
+    List<ReviewHistoryResponse> getAllReviewHistory();
+
+    // ─── User management ─────────────────────────────────────────────────────────
     UserResponse updateUserRoles(UpdateUserRoleRequest request);
     List<UserResponse> getAllUsers();
 

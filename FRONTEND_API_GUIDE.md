@@ -702,6 +702,46 @@ Author tạo request (OPEN) → Editor nhận (IN_PROGRESS) → Editor nộp (SU
 
 ---
 
+### Lịch sử duyệt (Review History)
+
+> Tất cả endpoints lịch sử đều trả về `List<ReviewHistoryResponse>` sắp xếp **mới nhất lên đầu**.
+
+**`ReviewHistoryResponse`:**
+```json
+{
+  "id": 1,
+  "reviewerId": 5,
+  "reviewerName": "Reviewer A",
+  "targetType": "CHAPTER",
+  "targetId": 10,
+  "targetTitle": "Chương 3: Đại Chiến",
+  "storyTitle": "Vạn Cổ Thần Vương",
+  "action": "REJECT",
+  "note": "Nội dung chưa đủ 1000 từ, cần bổ sung thêm chi tiết",
+  "currentStatus": "DRAFT",
+  "createdAt": "2024-06-15T14:20:00"
+}
+```
+
+| field | Ý nghĩa |
+|-------|---------|
+| `targetType` | `STORY` hoặc `CHAPTER` |
+| `targetTitle` | Tên story hoặc tên chapter đã duyệt |
+| `storyTitle` | Tên truyện — chỉ có khi `targetType = CHAPTER` |
+| `action` | `APPROVE` hoặc `REJECT` |
+| `note` | Lý do từ chối (chỉ có khi `action = REJECT`) |
+| `currentStatus` | Trạng thái hiện tại của story/chapter sau khi duyệt |
+
+### `GET /api/reviewer/history` — Toàn bộ lịch sử duyệt của tôi (STORY + CHAPTER)
+### `GET /api/reviewer/history/stories` — Chỉ lịch sử duyệt story
+### `GET /api/reviewer/history/chapters` — Chỉ lịch sử duyệt chapter
+### `GET /api/reviewer/history/story/{storyId}` — Lịch sử duyệt của 1 story cụ thể
+> Ai đã duyệt, khi nào, approve hay reject, lý do gì.
+
+### `GET /api/reviewer/history/chapter/{chapterId}` — Lịch sử duyệt của 1 chapter cụ thể
+
+---
+
 ## 🔐 Role Change Request (`/api/role-change-requests`) 🔒
 
 ### `POST /api/role-change-requests` — Gửi yêu cầu đổi role
