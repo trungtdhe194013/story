@@ -85,8 +85,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/chapters/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comments/chapter/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/missions").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/ratings/story/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/gifts/story/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/follows/story/*/count").permitAll()
 
                         // Admin endpoints - ADMIN only
                         .requestMatchers("/api/admin/**")

@@ -90,6 +90,31 @@ public class MissionServiceImpl implements MissionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<MissionResponse> getMyMissions() {
+        User currentUser = userService.getCurrentUser();
+
+        // Lấy tất cả mission đang active
+        List<Mission> missions = missionRepository.findByIsActive(true);
+
+        // Lấy tiến độ của user cho từng mission
+        List<UserMission> userMissions = userMissionRepository.findByUserId(currentUser.getId());
+
+        return missions.stream()
+                .sorted((a, b) -> Integer.compare(
+                        a.getDisplayOrder() != null ? a.getDisplayOrder() : 0,
+                        b.getDisplayOrder() != null ? b.getDisplayOrder() : 0))
+                .map(mission -> {
+                    UserMission um = userMissions.stream()
+                            .filter(x -> x.getMission().getId().equals(mission.getId()))
+                            .findFirst()
+                            .orElse(null);
+                    return mapToResponseWithProgress(mission, um);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public MissionResponse completeMission(Long missionId) {
         User currentUser = userService.getCurrentUser();
 
@@ -136,9 +161,35 @@ public class MissionServiceImpl implements MissionService {
         return MissionResponse.builder()
                 .id(mission.getId())
                 .name(mission.getName())
+                .description(mission.getDescription())
                 .rewardCoin(mission.getRewardCoin())
                 .type(mission.getType())
+                .targetCount(mission.getTargetCount())
+                .icon(mission.getIcon())
+                .displayOrder(mission.getDisplayOrder())
+                .isActive(mission.getIsActive())
+                .progress(0)
                 .completed(completed)
+                .completedAt(null)
+                .build();
+    }
+
+    private MissionResponse mapToResponseWithProgress(Mission mission, UserMission userMission) {
+        boolean completed = userMission != null && Boolean.TRUE.equals(userMission.getCompleted());
+        int progress = userMission != null && userMission.getProgress() != null ? userMission.getProgress() : 0;
+        return MissionResponse.builder()
+                .id(mission.getId())
+                .name(mission.getName())
+                .description(mission.getDescription())
+                .rewardCoin(mission.getRewardCoin())
+                .type(mission.getType())
+                .targetCount(mission.getTargetCount())
+                .icon(mission.getIcon())
+                .displayOrder(mission.getDisplayOrder())
+                .isActive(mission.getIsActive())
+                .progress(progress)
+                .completed(completed)
+                .completedAt(userMission != null ? userMission.getCompletedAt() : null)
                 .build();
     }
 }

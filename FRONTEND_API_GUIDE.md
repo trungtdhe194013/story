@@ -604,9 +604,98 @@ Dùng khi đã chuyển tiền nhưng coin chưa vào.
 
 ---
 
-## 🎖 Daily Streak (`/api/streak`) 🔒
+## 🎯 Mission (Nhiệm Vụ) Endpoints (`/api/missions`)
+
+> `GET /api/missions` — public (không cần login)  
+> `GET /api/missions/my`, `POST /api/missions/{id}/complete` — cần token 🔒
+
+### `GET /api/missions` — Danh sách tất cả nhiệm vụ *(public)*
+Trả về mission đang active. Nếu đã login thì kèm `completed`.
+
+**Response: `List<MissionResponse>`**
+```json
+[
+  {
+    "id": 1,
+    "name": "Đọc truyện hàng ngày",
+    "description": "Đọc ít nhất 1 chương truyện trong ngày",
+    "rewardCoin": 10,
+    "type": "DAILY",
+    "targetCount": 1,
+    "icon": "📖",
+    "displayOrder": 1,
+    "isActive": true,
+    "progress": 0,
+    "completed": false,
+    "completedAt": null
+  }
+]
+```
+
+**Loại `type`:**
+| type | Ý nghĩa |
+|------|---------|
+| `DAILY` | Nhiệm vụ hàng ngày — tự động reset lúc 00:00 |
+| `READ` | Nhiệm vụ đọc chương — tính theo số chương đã đọc |
+
+### `GET /api/missions/my` 🔒 — Nhiệm vụ của tôi (kèm tiến độ đầy đủ)
+Dùng để render trang Nhiệm Vụ sau khi user đăng nhập.
+
+**Response: `List<MissionResponse>`** (giống trên, nhưng `progress`, `completed`, `completedAt` có giá trị thật)
+```json
+[
+  {
+    "id": 1,
+    "name": "Đọc truyện hàng ngày",
+    "description": "Đọc ít nhất 1 chương truyện trong ngày",
+    "rewardCoin": 10,
+    "type": "DAILY",
+    "targetCount": 1,
+    "icon": "📖",
+    "displayOrder": 1,
+    "isActive": true,
+    "progress": 1,
+    "completed": true,
+    "completedAt": "2024-06-15T09:30:00"
+  },
+  {
+    "id": 2,
+    "name": "Đọc 5 chương liên tiếp",
+    "description": "Đọc 5 chương trong một phiên",
+    "rewardCoin": 30,
+    "type": "READ",
+    "targetCount": 5,
+    "icon": "🔥",
+    "displayOrder": 2,
+    "isActive": true,
+    "progress": 3,
+    "completed": false,
+    "completedAt": null
+  }
+]
+```
+
+> **Hiển thị progress bar:** `(progress / targetCount) * 100%`  
+> Khi `progress >= targetCount` AND `completed = false` → hiện nút "Nhận thưởng"
+
+### `POST /api/missions/{missionId}/complete` 🔒 — Nhận thưởng nhiệm vụ
+Gọi khi user bấm nút "Nhận thưởng". Cộng coin vào ví ngay lập tức.
+
+**Response:** `MissionResponse` với `completed = true`, `completedAt = now`
+
+**Lỗi:**
+- `404` — mission không tồn tại
+- `400 "Mission already completed"` — đã nhận thưởng rồi
+
+---
+
+## 🔥 Streak (Check-in hàng ngày) Endpoints (`/api/streak`) 🔒
+
+> Tất cả endpoints đều cần token.
 
 ### `POST /api/streak/check-in` — Check-in hàng ngày
+Mỗi ngày chỉ được check-in **một lần**.
+
 **Response: `StreakResponse`**
 ```json
 {
@@ -614,12 +703,44 @@ Dùng khi đã chuyển tiền nhưng coin chưa vào.
   "longestStreak": 14,
   "lastCheckInDate": "2024-06-15",
   "hasClaimedToday": true,
-  "coinEarned": 50,
-  "message": "Check-in ngày 7! Bạn nhận được 50 coin."
+  "coinEarned": 55,
+  "message": "Check-in thành công! Streak: 7 ngày. Nhận 55 coin!"
 }
 ```
 
-### `GET /api/streak/status` 🔒 — Xem trạng thái streak hiện tại
+**Bảng coin thưởng:**
+| Ngày streak | Coin cơ bản | Coin mốc thưởng | Tổng nhận |
+|-------------|-------------|-----------------|-----------|
+| Ngày 1      | 5           | 0               | **5**     |
+| Ngày 2      | 5           | 0               | **5**     |
+| Ngày 3      | 5           | +10             | **15**    |
+| Ngày 4–6    | 5           | 0               | **5**     |
+| Ngày 7      | 5           | +45             | **50**    |
+| Ngày 8–13   | 5           | 0               | **5**     |
+| Ngày 14     | 5           | +95             | **100**   |
+| Ngày 15–29  | 5           | 0               | **5**     |
+| Ngày 30     | 5           | +295            | **300**   |
+| Ngày 31–99  | 5           | 0               | **5**     |
+| Ngày 100    | 5           | +995            | **1000**  |
+
+> **Lỗi `400`:** `"Bạn đã check-in hôm nay rồi!"` — khi gọi lần 2 trong ngày.  
+> **Vỡ streak:** Bỏ 1 ngày không check-in → `currentStreak` về `1` ngày hôm sau.
+
+### `GET /api/streak/status` 🔒 — Xem trạng thái streak (không check-in)
+Dùng để hiển thị UI: đã check-in hôm nay chưa, streak bao nhiêu ngày, v.v.
+
+```json
+{
+  "currentStreak": 7,
+  "longestStreak": 14,
+  "lastCheckInDate": "2024-06-15",
+  "hasClaimedToday": true,
+  "coinEarned": 0,
+  "message": null
+}
+```
+
+> `coinEarned` luôn là `0` ở endpoint này (không check-in = không nhận coin).
 
 ---
 

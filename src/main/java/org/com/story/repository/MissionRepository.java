@@ -9,5 +9,6 @@ import java.util.List;
 @Repository
 public interface MissionRepository extends JpaRepository<Mission, Long> {
     List<Mission> findByType(String type);
+    List<Mission> findByIsActive(Boolean isActive);
+    List<Mission> findByIsActiveTrueOrderByDisplayOrderAsc();
 }
-
