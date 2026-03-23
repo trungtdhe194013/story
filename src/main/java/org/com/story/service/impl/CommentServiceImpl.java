@@ -34,6 +34,14 @@ public class CommentServiceImpl implements CommentService {
     public CommentResponse createComment(CommentRequest request) {
         User currentUser = userService.getCurrentUser();
 
+        // Kiểm tra xem user có đang bị hạn chế bình luận không
+        if (currentUser.getCommentBanUntil() != null
+                && currentUser.getCommentBanUntil().isAfter(java.time.LocalDateTime.now())) {
+            throw new BadRequestException(
+                    "Bạn đang bị hạn chế quyền bình luận đến " + currentUser.getCommentBanUntil()
+                    + ". Lý do: vi phạm quy định cộng đồng.");
+        }
+
         Comment comment = new Comment();
         comment.setUser(currentUser);
         comment.setContent(request.getContent());

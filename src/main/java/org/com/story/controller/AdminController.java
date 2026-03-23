@@ -113,15 +113,40 @@ public class AdminController {
         return reportService.getPendingReports();
     }
 
+    @GetMapping("/reports/{id}")
+    @Operation(summary = "Get report by ID", description = "Xem chi tiết 1 báo cáo",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public ReportResponse getReportById(@PathVariable Long id) {
+        return reportService.getReportById(id);
+    }
+
+    @GetMapping("/reports/by-type/{targetType}")
+    @Operation(summary = "Get reports by target type",
+            description = "Lọc báo cáo theo loại nội dung: STORY | CHAPTER | COMMENT",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<ReportResponse> getReportsByTargetType(@PathVariable String targetType) {
+        return reportService.getReportsByTargetType(targetType);
+    }
+
+    @GetMapping("/reports/target/{targetType}/{targetId}")
+    @Operation(summary = "Get all reports for a specific content",
+            description = "Xem tất cả báo cáo của 1 nội dung cụ thể (vd: story id=5)",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<ReportResponse> getReportsForTarget(
+            @PathVariable String targetType,
+            @PathVariable Long targetId) {
+        return reportService.getReportsForTarget(targetType, targetId);
+    }
+
     @PostMapping("/reports/{id}/resolve")
     @Operation(summary = "Resolve report", description = """
             Xử lý báo cáo vi phạm. action:
-            - WARN_ONLY: chỉ đánh dấu đã xử lý
-            - HIDE_CONTENT: ẩn nội dung (comment→hidden, chapter→HIDDEN, story→REJECTED)
-            - DELETE_CONTENT: xóa nội dung
-            - BAN_USER: ban tài khoản tác giả (cần banDays > 0 hoặc -1 vĩnh viễn)
-            - HIDE_AND_BAN: ẩn nội dung + ban tác giả
-            - DELETE_AND_BAN: xóa nội dung + ban tác giả
+            - WARN_ONLY      : chỉ đánh dấu đã xử lý, không làm gì thêm
+            - HIDE_CONTENT   : ẩn nội dung (comment→hidden+ban comment 24h, chapter→HIDDEN+noti tác giả, story→soft-delete+noti followers&buyers)
+            - DELETE_CONTENT : xóa nội dung (chapter có lượt mua → tự động chuyển thành HIDE)
+            - BAN_USER       : ban tài khoản tác giả (banDays: -1=vĩnh viễn, >0=số ngày)
+            - HIDE_AND_BAN   : ẩn nội dung + ban tác giả
+            - DELETE_AND_BAN : xóa nội dung + ban tác giả
             """,
             security = @SecurityRequirement(name = "bearerAuth"))
     public ReportResponse resolveReport(

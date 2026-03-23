@@ -14,4 +14,10 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     /** Story-level comments */
     List<Comment> findByStoryId(Long storyId);
     List<Comment> findByStoryIdAndParentIsNull(Long storyId);
+
+    /**
+     * Đếm số comment đã bị ẩn của 1 user.
+     * Dùng để phát hiện tái phạm và quyết định mức phạt (24h vs 7 ngày).
+     */
+    long countByUserIdAndHiddenTrue(Long userId);
 }

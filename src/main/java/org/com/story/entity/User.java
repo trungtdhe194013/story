@@ -69,6 +69,9 @@ public class User {
     @Column(columnDefinition = "TEXT")
     private String banReason;
 
+    /** null = không bị hạn chế bình luận; có giá trị = bị hạn chế đến thời điểm đó */
+    private LocalDateTime commentBanUntil;
+
     /** Tổng coin tác giả đã kiếm được từ bán chương + nhận quà */
     private Long totalEarnedCoin = 0L;
 
