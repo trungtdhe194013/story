@@ -13,6 +13,10 @@ import org.com.story.dto.request.ReviewRoleChangeRequest;
 import org.com.story.dto.request.ReviewStoryRequest;
 import org.com.story.dto.request.UpdateUserRoleRequest;
 import org.com.story.dto.response.*;
+import org.com.story.dto.response.SystemStatsResponse;
+import org.com.story.dto.response.SystemLogResponse;
+import org.com.story.dto.response.SystemAlertResponse;
+import org.com.story.dto.response.CoinStatsDailyResponse;
 import org.com.story.service.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -240,6 +244,50 @@ public class AdminController {
     public RoleChangeRequestResponse reviewRoleChangeRequest(
             @Valid @RequestBody ReviewRoleChangeRequest request) {
         return roleChangeRequestService.reviewRequest(request);
+    }
+
+    // ============== SYSTEM OPS & COIN MONITORING ==============
+
+    @GetMapping("/system/stats")
+    @Operation(summary = "Get system metrics", description = "Lấy các chỉ số vận hành (DAU/MAU, doanh thu...)",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public SystemStatsResponse getSystemStats() {
+        return adminService.getSystemStats();
+    }
+
+    @GetMapping("/system/logs")
+    @Operation(summary = "Get system logs", description = "Xem log hệ thống theo severity",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<SystemLogResponse> getSystemLogs() {
+        return adminService.getSystemLogs();
+    }
+
+    @GetMapping("/system/alerts")
+    @Operation(summary = "Get system alerts", description = "Xem các cảnh báo hệ thống thời gian thực",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<SystemAlertResponse> getSystemAlerts() {
+        return adminService.getSystemAlerts();
+    }
+
+    @PostMapping("/jobs/stats-aggregator")
+    @Operation(summary = "Run StatsAggregator job", description = "Kích hoạt job tổng hợp số liệu",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public void runStatsJob() {
+        adminService.runStatsAggregator();
+    }
+
+    @GetMapping("/coins/stats-daily")
+    @Operation(summary = "Get daily coin stats", description = "Xem tổng nạp/tiêu coin trong ngày",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public CoinStatsDailyResponse getCoinStatsDaily() {
+        return adminService.getCoinStatsDaily();
+    }
+
+    @PostMapping("/jobs/monthly-settlement")
+    @Operation(summary = "Run MonthlySettlement job", description = "Kích hoạt job tất toán tháng",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public void runSettlementJob() {
+        adminService.runMonthlySettlement();
     }
 }
 

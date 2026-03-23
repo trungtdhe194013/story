@@ -12,6 +12,10 @@ import org.com.story.dto.response.StoryDetailResponse;
 import org.com.story.dto.response.StoryResponse;
 import org.com.story.dto.response.UserResponse;
 import org.com.story.dto.response.CategoryResponse;
+import org.com.story.dto.response.SystemStatsResponse;
+import org.com.story.dto.response.SystemLogResponse;
+import org.com.story.dto.response.SystemAlertResponse;
+import org.com.story.dto.response.CoinStatsDailyResponse;
 import org.com.story.entity.AdminReview;
 import org.com.story.entity.Chapter;
 import org.com.story.entity.Role;
@@ -418,6 +422,80 @@ public class AdminServiceImpl implements AdminService {
                 .totalChapterCount(totalCount)
                 .isDeleted(Boolean.TRUE.equals(story.getIsDeleted()))
                 .build();
+    }
+
+    @Override
+    public SystemStatsResponse getSystemStats() {
+        long totalUsers = userRepository.count();
+        // Giả lập tỷ lệ DAU/MAU dựa trên số lượng user (tối đa 0.45)
+        double dauMau = Math.min(0.45, 0.1 + (totalUsers % 100) / 300.0);
+        
+        return SystemStatsResponse.builder()
+                .dauMauRatio(dauMau)
+                .revenue7d(totalUsers * 1250L) // Giả định mỗi user mang lại 1250đ/tuần
+                .paymentErrorRate(0.02) // Giả lập tỷ lệ lỗi 2%
+                .build();
+    }
+
+    @Override
+    public List<SystemLogResponse> getSystemLogs() {
+        return List.of(
+            SystemLogResponse.builder()
+                .timestamp(LocalDateTime.now().minusMinutes(5))
+                .severity("INFO")
+                .component("AuthService")
+                .message("User login successful: reader01")
+                .build(),
+            SystemLogResponse.builder()
+                .timestamp(LocalDateTime.now().minusMinutes(12))
+                .severity("ERROR")
+                .component("PaymentGateway")
+                .message("PayOS webhook verification failed for order #12345")
+                .build(),
+            SystemLogResponse.builder()
+                .timestamp(LocalDateTime.now().minusHours(1))
+                .severity("WARN")
+                .component("StoryService")
+                .message("Slow query detected in findPendingForReview")
+                .build()
+        );
+    }
+
+    @Override
+    public List<SystemAlertResponse> getSystemAlerts() {
+        return List.of(
+            SystemAlertResponse.builder()
+                .timestamp(LocalDateTime.now().minusMinutes(2))
+                .level("HIGH")
+                .message("Payment error rate exceeded 5% in the last 10 minutes")
+                .build(),
+            SystemAlertResponse.builder()
+                .timestamp(LocalDateTime.now().minusHours(24))
+                .level("MEDIUM")
+                .message("Database disk usage reaching 85%")
+                .build()
+        );
+    }
+
+    @Override
+    public void runStatsAggregator() {
+        // Giả lập chạy job
+        System.out.println("StatsAggregator job triggered manually by admin");
+    }
+
+    @Override
+    public CoinStatsDailyResponse getCoinStatsDaily() {
+        long totalUsers = userRepository.count();
+        return CoinStatsDailyResponse.builder()
+                .totalDepositToday(totalUsers * 500L)
+                .totalSpendToday(totalUsers * 320L)
+                .build();
+    }
+
+    @Override
+    public void runMonthlySettlement() {
+        // Giả lập chạy job
+        System.out.println("MonthlySettlementCalculator job triggered manually by admin");
     }
 
     private UserResponse mapUserToResponse(User user) {

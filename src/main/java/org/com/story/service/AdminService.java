@@ -9,6 +9,10 @@ import org.com.story.dto.response.ReviewHistoryResponse;
 import org.com.story.dto.response.StoryDetailResponse;
 import org.com.story.dto.response.StoryResponse;
 import org.com.story.dto.response.UserResponse;
+import org.com.story.dto.response.SystemStatsResponse;
+import org.com.story.dto.response.SystemLogResponse;
+import org.com.story.dto.response.SystemAlertResponse;
+import org.com.story.dto.response.CoinStatsDailyResponse;
 
 import java.util.List;
 
@@ -52,4 +56,18 @@ public interface AdminService {
 
     /** Gỡ ban tài khoản */
     UserResponse unbanUser(Long userId);
+
+    // ─── System Ops & Coin Monitoring ───────────────────────────────────────────
+
+    SystemStatsResponse getSystemStats();
+
+    List<SystemLogResponse> getSystemLogs();
+
+    List<SystemAlertResponse> getSystemAlerts();
+
+    void runStatsAggregator();
+
+    CoinStatsDailyResponse getCoinStatsDaily();
+
+    void runMonthlySettlement();
 }
