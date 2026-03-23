@@ -24,11 +24,13 @@ import org.com.story.security.JwtUtil;
 import org.com.story.service.MailService;
 import org.com.story.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
@@ -256,17 +258,30 @@ public class UserServiceImpl implements UserService {
         return mapToResponse(userRepository.save(currentUser));
     }
 
+    /**
+     * Lấy user hiện tại từ JWT token.
+     *
+     * QUAN TRỌNG: method này dùng noRollbackFor = Exception.class để tránh bug:
+     * khi user chưa đăng nhập (anonymous), method ném RuntimeException.
+     * Nếu không có noRollbackFor, Spring sẽ đánh dấu outer transaction là
+     * rollback-only ngay cả khi caller đã try-catch → gây 500 ở public endpoints.
+     */
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, noRollbackFor = Exception.class)
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated()) {
+        // AnonymousAuthenticationToken có isAuthenticated() = true nhưng không phải user thật.
+        // Phải check TRƯỚC khi truy vấn DB.
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
             throw new RuntimeException("User not authenticated");
         }
 
         String email = authentication.getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
     }
 
     @Override
