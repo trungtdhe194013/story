@@ -12,6 +12,7 @@ import java.util.Set;
 @Table(name = "users")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
+@Builder
 public class User {
 
     @Id
@@ -44,6 +45,7 @@ public class User {
 
     private String providerId; // google sub
 
+    @Builder.Default
     private Boolean enabled = true;
 
     // Extended profile fields
@@ -69,11 +71,23 @@ public class User {
     @Column(columnDefinition = "TEXT")
     private String banReason;
 
+    @Builder.Default
+    private Long walletBalance = 0L;
+
     /** null = không bị hạn chế bình luận; có giá trị = bị hạn chế đến thời điểm đó */
     private LocalDateTime commentBanUntil;
 
     /** Tổng coin tác giả đã kiếm được từ bán chương + nhận quà */
+    @Builder.Default
     private Long totalEarnedCoin = 0L;
+
+    @Column(name = "level", nullable = false)
+    @Builder.Default
+    private Integer level = 1;
+
+    @Column(name = "experience", nullable = false)
+    @Builder.Default
+    private Long experience = 0L;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

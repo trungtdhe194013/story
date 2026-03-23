@@ -10,6 +10,7 @@ import org.com.story.exception.NotFoundException;
 import org.com.story.repository.RatingRepository;
 import org.com.story.repository.StoryRepository;
 import org.com.story.service.RatingService;
+import org.com.story.service.ExperienceService;
 import org.com.story.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ public class RatingServiceImpl implements RatingService {
     private final RatingRepository ratingRepository;
     private final StoryRepository storyRepository;
     private final UserService userService;
+    private final ExperienceService experienceService;
 
     @Override
     public RatingResponse rateStory(RatingRequest request) {
@@ -48,6 +50,8 @@ public class RatingServiceImpl implements RatingService {
                     .score(request.getScore())
                     .review(request.getReview())
                     .build();
+            // Award EXP for first time rating
+            experienceService.awardExperience(currentUser, ExperienceService.EXP_PER_RATING);
         }
         rating = ratingRepository.save(rating);
 

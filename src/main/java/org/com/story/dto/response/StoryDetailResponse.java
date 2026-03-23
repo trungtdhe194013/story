@@ -47,6 +47,7 @@ public class StoryDetailResponse {
     /** Số người đang follow truyện này */
     private Long followCount;
 
-    /** true nếu user hiện tại đang follow (null nếu chưa đăng nhập) */
+    /** true if current user is following (null if not logged in) */
+    /** true if current user is following (null if not logged in) */
     private Boolean isFollowing;
 }

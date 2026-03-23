@@ -36,6 +36,7 @@ public class ChapterServiceImpl implements ChapterService {
     @Lazy
     private final ReadingHistoryService readingHistoryService;
     private final WalletService walletService;
+    private final ExperienceService experienceService;
 
     @Override
     public ChapterResponse createChapter(Long storyId, ChapterRequest request) {
@@ -92,7 +93,10 @@ public class ChapterServiceImpl implements ChapterService {
                 readingHistoryService.recordReading(currentUser.getId(), story.getId(), chapter.getId());
             } catch (Exception ignored) {}
 
-            // Tăng viewCount
+            // Award EXP
+            experienceService.awardExperience(currentUser, ExperienceService.EXP_PER_CHAPTER_READ);
+
+            // Increase viewCount
             chapter.setViewCount((chapter.getViewCount() != null ? chapter.getViewCount() : 0) + 1);
             chapterRepository.save(chapter);
         }
@@ -261,8 +265,10 @@ public class ChapterServiceImpl implements ChapterService {
         author.setTotalEarnedCoin((author.getTotalEarnedCoin() != null ? author.getTotalEarnedCoin() : 0L) + chapter.getCoinPrice());
 
         // Ghi giao dịch
-        walletService.createTransaction(currentUser.getId(), (long) -chapter.getCoinPrice(), "BUY", chapter.getId());
         walletService.createTransaction(author.getId(), (long) chapter.getCoinPrice(), "BUY", chapter.getId());
+
+        // Award EXP for buying (maybe double?)
+        experienceService.awardExperience(currentUser, ExperienceService.EXP_PER_CHAPTER_READ * 2);
 
         return mapToResponse(chapter, currentUser, Collections.emptyList());
     }

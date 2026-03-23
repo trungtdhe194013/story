@@ -11,6 +11,7 @@ import org.com.story.repository.ChapterRepository;
 import org.com.story.repository.CommentRepository;
 import org.com.story.repository.StoryRepository;
 import org.com.story.service.CommentService;
+import org.com.story.service.ExperienceService;
 import org.com.story.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,7 @@ public class CommentServiceImpl implements CommentService {
     private final ChapterRepository chapterRepository;
     private final StoryRepository storyRepository;
     private final UserService userService;
+    private final ExperienceService experienceService;
 
     @Override
     public CommentResponse createComment(CommentRequest request) {
@@ -64,7 +66,12 @@ public class CommentServiceImpl implements CommentService {
             comment.setParent(parent);
         }
 
-        return mapToResponse(commentRepository.save(comment));
+        Comment savedComment = commentRepository.save(comment);
+
+        // Award EXP for commenting
+        experienceService.awardExperience(currentUser, ExperienceService.EXP_PER_COMMENT);
+
+        return mapToResponse(savedComment);
     }
 
     @Override

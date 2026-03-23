@@ -27,7 +27,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -314,6 +313,8 @@ public class UserServiceImpl implements UserService {
                 .banUntil(user.getBanUntil())
                 .totalFollowedStories(followedStories)
                 .totalPurchasedChapters(purchasedChapters)
+                .level(user.getLevel() != null ? user.getLevel() : 1)
+                .experience(user.getExperience() != null ? user.getExperience() : 0L)
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

@@ -39,6 +39,9 @@ public class UserResponse {
     private Integer totalFollowedStories;
     private Integer totalPurchasedChapters;
 
+    private Integer level;
+    private Long experience;
+
     // Timestamps
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

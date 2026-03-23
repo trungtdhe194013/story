@@ -23,6 +23,7 @@ import java.util.Set;
 })
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
+@Builder
 public class Story {
 
     @Id
@@ -57,24 +58,30 @@ public class Story {
     private Set<Category> categories;
 
     @Column(name = "view_count")
+    @Builder.Default
     private Long viewCount = 0L;
 
+    @Builder.Default
     private Long likeCount = 0L;
 
     /** Điểm trung bình đánh giá (1-5) */
+    @Builder.Default
     private Double avgRating = 0.0;
 
     /** Số lượt đánh giá */
+    @Builder.Default
     private Integer ratingCount = 0;
 
     /** Đánh dấu truyện đã hoàn thành */
     @Column(name = "is_completed", nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT false")
+    @Builder.Default
     private Boolean isCompleted = false;
 
     private LocalDateTime completedAt;
 
     /** Soft-delete flag */
     @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT false")
+    @Builder.Default
     private Boolean isDeleted = false;
 
     @CreationTimestamp
