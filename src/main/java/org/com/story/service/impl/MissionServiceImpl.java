@@ -99,18 +99,13 @@ public class MissionServiceImpl implements MissionService {
         User finalCurrentUser = currentUser;
         return missionRepository.findByIsActiveTrueOrderByDisplayOrderAsc().stream()
                 .map(mission -> {
-                    boolean completed = false;
-                    int progress = 0;
+                    UserMission um = null;
                     if (finalCurrentUser != null) {
-                        var um = userMissionRepository
+                        um = userMissionRepository
                                 .findByUserIdAndMissionId(finalCurrentUser.getId(), mission.getId())
                                 .orElse(null);
-                        completed = um != null && Boolean.TRUE.equals(um.getCompleted());
-                        progress = um != null && um.getProgress() != null ? um.getProgress() : 0;
                     }
-                    MissionResponse r = mapToResponse(mission, completed);
-                    r.setProgress(progress);
-                    return r;
+                    return mapToResponseWithProgress(mission, um);
                 })
                 .collect(Collectors.toList());
     }
@@ -160,6 +155,54 @@ public class MissionServiceImpl implements MissionService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // CLAIM REWARD  (user bấm "Nhận thưởng" khi progress đã đủ)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Override
+    public MissionResponse claimMissionReward(Long missionId) {
+        User currentUser = userService.getCurrentUser();
+        Mission mission = missionRepository.findById(missionId)
+                .orElseThrow(() -> new NotFoundException("Mission not found"));
+
+        UserMission um = userMissionRepository
+                .findByUserIdAndMissionId(currentUser.getId(), missionId)
+                .orElseThrow(() -> new BadRequestException("Bạn chưa bắt đầu nhiệm vụ này"));
+
+        if (Boolean.TRUE.equals(um.getCompleted())) {
+            throw new BadRequestException("Bạn đã nhận thưởng nhiệm vụ này rồi");
+        }
+
+        int targetCount = mission.getTargetCount() != null ? mission.getTargetCount() : 1;
+        int progress    = um.getProgress() != null ? um.getProgress() : 0;
+
+        if (progress < targetCount) {
+            throw new BadRequestException(
+                    "Chưa đủ tiến độ để nhận thưởng. Hiện tại: " + progress + "/" + targetCount);
+        }
+
+        // ✅ Đủ điều kiện — cộng coin & đánh dấu hoàn thành
+        um.setCompleted(true);
+        um.setCompletedAt(LocalDateTime.now());
+        userMissionRepository.save(um);
+
+        rewardCoins(currentUser, mission);
+
+        // Gửi thông báo nhận thưởng
+        try {
+            notificationService.sendNotification(
+                    currentUser,
+                    "MISSION_COMPLETED",
+                    "🎯 Nhận thưởng nhiệm vụ thành công!",
+                    "Bạn đã nhận " + mission.getRewardCoin() + " coin từ nhiệm vụ '"
+                            + mission.getName() + "'. 🪙",
+                    mission.getId(), "MISSION"
+            );
+        } catch (Exception ignored) {}
+
+        return mapToResponseWithProgress(mission, um);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // AUTO TRACKING  (called by other services on user actions)
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -198,32 +241,26 @@ public class MissionServiceImpl implements MissionService {
                     return newUm;
                 });
 
-        // Nếu đã hoàn thành rồi thì không tăng thêm
+        // Nếu đã nhận thưởng (completed = true) thì không tăng thêm
         if (Boolean.TRUE.equals(um.getCompleted())) return;
 
         int newProgress = (um.getProgress() != null ? um.getProgress() : 0) + 1;
-        um.setProgress(newProgress);
+        // Không vượt quá targetCount
+        um.setProgress(Math.min(newProgress, targetCount));
+        userMissionRepository.save(um);
 
-        if (newProgress >= targetCount) {
-            // ✅ Hoàn thành!
-            um.setCompleted(true);
-            um.setCompletedAt(LocalDateTime.now());
-            userMissionRepository.save(um);
-
-            rewardCoins(user, mission);
-
+        // Thông báo khi vừa đạt đủ điều kiện (canClaim) — nhắc user vào nhận thưởng
+        if (newProgress == targetCount) {
             try {
                 notificationService.sendNotification(
                         user,
-                        "MISSION_COMPLETED",
-                        "🎯 Hoàn thành nhiệm vụ!",
+                        "MISSION_CLAIMABLE",
+                        "🎯 Nhiệm vụ sẵn sàng nhận thưởng!",
                         "Bạn đã hoàn thành nhiệm vụ '" + mission.getName()
-                                + "' và nhận được " + mission.getRewardCoin() + " coin. 🪙",
+                                + "'. Vào trang Nhiệm Vụ để nhận " + mission.getRewardCoin() + " coin! 🪙",
                         mission.getId(), "MISSION"
                 );
             } catch (Exception ignored) {}
-        } else {
-            userMissionRepository.save(um);
         }
     }
 
@@ -287,13 +324,24 @@ public class MissionServiceImpl implements MissionService {
                 .isActive(mission.getIsActive())
                 .progress(0)
                 .completed(completed)
+                .canClaim(false)
+                .status(completed ? "COMPLETED" : "NOT_STARTED")
                 .completedAt(null)
                 .build();
     }
 
     private MissionResponse mapToResponseWithProgress(Mission mission, UserMission userMission) {
-        boolean completed = userMission != null && Boolean.TRUE.equals(userMission.getCompleted());
-        int progress = userMission != null && userMission.getProgress() != null ? userMission.getProgress() : 0;
+        boolean completed  = userMission != null && Boolean.TRUE.equals(userMission.getCompleted());
+        int progress       = userMission != null && userMission.getProgress() != null ? userMission.getProgress() : 0;
+        int targetCount    = mission.getTargetCount() != null ? mission.getTargetCount() : 1;
+        boolean canClaim   = !completed && progress >= targetCount;
+
+        String status;
+        if (completed)       status = "COMPLETED";
+        else if (canClaim)   status = "CLAIMABLE";
+        else if (progress > 0) status = "IN_PROGRESS";
+        else                 status = "NOT_STARTED";
+
         return MissionResponse.builder()
                 .id(mission.getId())
                 .name(mission.getName())
@@ -301,12 +349,14 @@ public class MissionServiceImpl implements MissionService {
                 .rewardCoin(mission.getRewardCoin())
                 .type(mission.getType())
                 .action(mission.getAction())
-                .targetCount(mission.getTargetCount() != null ? mission.getTargetCount() : 1)
+                .targetCount(targetCount)
                 .icon(mission.getIcon())
                 .displayOrder(mission.getDisplayOrder())
                 .isActive(mission.getIsActive())
                 .progress(progress)
                 .completed(completed)
+                .canClaim(canClaim)
+                .status(status)
                 .completedAt(userMission != null ? userMission.getCompletedAt() : null)
                 .build();
     }

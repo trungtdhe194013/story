@@ -21,6 +21,12 @@ public interface MissionService {
     MissionResponse completeMission(Long missionId);
 
     /**
+     * User tự claim phần thưởng khi progress đã đủ điều kiện.
+     * Chỉ hoạt động khi progress >= targetCount && !completed.
+     */
+    MissionResponse claimMissionReward(Long missionId);
+
+    /**
      * Tự động theo dõi tiến độ nhiệm vụ khi user thực hiện một hành động.
      * Gọi sau khi user: đăng nhập, đọc chương, bình luận, follow, mua chương, tặng quà.
      *

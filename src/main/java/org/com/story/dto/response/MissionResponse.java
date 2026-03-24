@@ -29,8 +29,17 @@ public class MissionResponse {
     // ── Trạng thái của user hiện tại ──────────────────────────────────────────
     /** Tiến độ hiện tại (0 → targetCount) */
     private Integer progress;
-    /** Đã hoàn thành và đã nhận thưởng chưa */
+    /** Đã hoàn thành VÀ đã nhận thưởng chưa */
     private Boolean completed;
-    /** Thời điểm hoàn thành (null nếu chưa hoàn thành) */
+    /** Đã đủ điều kiện nhận thưởng (progress >= targetCount) nhưng chưa claim */
+    private Boolean canClaim;
+    /**
+     * Trạng thái hiển thị:
+     * NOT_STARTED | IN_PROGRESS | CLAIMABLE | COMPLETED
+     */
+    private String status;
+    /** Thời điểm hoàn thành/nhận thưởng (null nếu chưa hoàn thành) */
     private LocalDateTime completedAt;
 }
+
+

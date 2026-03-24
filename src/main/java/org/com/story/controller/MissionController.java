@@ -45,16 +45,25 @@ public class MissionController {
         return missionService.getMyMissions();
     }
 
-    @PostMapping("/{missionId}/complete")
-    @Operation(summary = "Hoàn thành nhiệm vụ và nhận thưởng coin",
+    @PostMapping("/{missionId}/claim")
+    @Operation(summary = "Nhận thưởng nhiệm vụ",
             description = """
-                    Đánh dấu nhiệm vụ đã hoàn thành, cộng coin vào ví.
-                    Chỉ gọi khi user thực sự đã thực hiện hành động yêu cầu.
+                    User bấm "Nhận thưởng" khi nhiệm vụ đã đủ điều kiện (status = CLAIMABLE).
+                    - Coin được cộng vào ví ngay lập tức.
+                    - Status chuyển sang COMPLETED.
                     
                     Lỗi nếu:
-                    - Mission không tồn tại (404)
-                    - Đã hoàn thành rồi (400 "Mission already completed")
+                    - Chưa đủ tiến độ (400 "Chưa đủ tiến độ")
+                    - Đã nhận rồi (400 "Đã nhận thưởng rồi")
                     """,
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public MissionResponse claimMission(@PathVariable Long missionId) {
+        return missionService.claimMissionReward(missionId);
+    }
+
+    @PostMapping("/{missionId}/complete")
+    @Operation(summary = "[Admin/Test] Force complete mission",
+            description = "Admin/test — force hoàn thành và nhận coin bất kể progress. Dùng khi debug.",
             security = @SecurityRequirement(name = "bearerAuth"))
     public MissionResponse completeMission(@PathVariable Long missionId) {
         return missionService.completeMission(missionId);

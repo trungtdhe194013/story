@@ -653,29 +653,61 @@ public class DataInitializer {
     // ===================== MISSIONS & USER MISSIONS =====================
     private List<Mission> createMissions() {
         if (missionRepository.count() > 0) {
-            // Cập nhật lại targetCount cho các mission cũ nếu bị null hoặc sai lệch
+            // Cập nhật lại targetCount & displayOrder cho các mission cũ nếu sai lệch
             List<Mission> existing = missionRepository.findAll();
             for (Mission m : existing) {
-                if (m.getName().equals("Đọc 5 chương truyện")) {
-                    m.setTargetCount(5);
-                } else if (m.getTargetCount() == null) {
-                    m.setTargetCount(1);
-                }
+                if ("Đọc 5 chương truyện".equals(m.getName()))   { m.setTargetCount(5); m.setDisplayOrder(1); }
+                if ("Đăng nhập hàng ngày".equals(m.getName()))   { m.setDisplayOrder(6); }
+                if ("Bình luận 1 chương".equals(m.getName()))    { m.setDisplayOrder(2); }
+                if ("Theo dõi 1 truyện mới".equals(m.getName())) { m.setDisplayOrder(3); }
+                if ("Mua 1 chương truyện".equals(m.getName()))   { m.setDisplayOrder(4); }
+                if ("Tặng quà cho tác giả".equals(m.getName()))  { m.setDisplayOrder(5); }
+                if (m.getTargetCount() == null) m.setTargetCount(1);
+                if (m.getIsActive() == null)    m.setIsActive(true);
             }
             missionRepository.saveAll(existing);
             return existing;
         }
 
         List<Mission> missions = new ArrayList<>();
-        missions.add(missionRepository.save(createMission("Đăng nhập hàng ngày", 10L, "DAILY", "LOGIN", 1)));
-        missions.add(missionRepository.save(createMission("Đọc 1 chương truyện", 5L, "READ", "READ_CHAPTER", 1)));
-        missions.add(missionRepository.save(createMission("Đọc 5 chương truyện", 20L, "READ", "READ_CHAPTER", 5)));
-        missions.add(missionRepository.save(createMission("Bình luận 1 chương", 5L, "DAILY", "COMMENT", 1)));
-        missions.add(missionRepository.save(createMission("Theo dõi 1 truyện mới", 10L, "DAILY", "FOLLOW_STORY", 1)));
-        missions.add(missionRepository.save(createMission("Mua 1 chương truyện", 15L, "READ", "BUY_CHAPTER", 1)));
-        missions.add(missionRepository.save(createMission("Tặng quà cho tác giả", 20L, "DAILY", "SEND_GIFT", 1)));
+        // displayOrder = thứ tự hiển thị trên UI (giống screenshot)
+        missions.add(missionRepository.save(buildMission("Đọc 5 chương truyện",
+                "Đọc đủ 5 chương truyện bất kỳ để nhận thưởng",
+                20L, "READ", "READ_CHAPTER", 5, "📚", 1)));
+        missions.add(missionRepository.save(buildMission("Bình luận 1 chương",
+                "Để lại 1 bình luận trong bất kỳ chương truyện nào",
+                5L, "DAILY", "COMMENT", 1, "💬", 2)));
+        missions.add(missionRepository.save(buildMission("Theo dõi 1 truyện mới",
+                "Theo dõi 1 bộ truyện mới trong ngày",
+                10L, "DAILY", "FOLLOW_STORY", 1, "❤️", 3)));
+        missions.add(missionRepository.save(buildMission("Mua 1 chương truyện",
+                "Mua ít nhất 1 chương trả phí",
+                15L, "READ", "BUY_CHAPTER", 1, "🛒", 4)));
+        missions.add(missionRepository.save(buildMission("Tặng quà cho tác giả",
+                "Tặng quà (donate) cho tác giả trong ngày",
+                20L, "DAILY", "SEND_GIFT", 1, "🎁", 5)));
+        missions.add(missionRepository.save(buildMission("Đăng nhập hàng ngày",
+                "Đăng nhập vào hệ thống mỗi ngày để nhận coin",
+                10L, "DAILY", "LOGIN", 1, "🔑", 6)));
+
         System.out.println("🎯 Đã tạo " + missions.size() + " missions");
         return missions;
+    }
+
+    private Mission buildMission(String name, String description, Long rewardCoin,
+                                  String type, String action, int targetCount,
+                                  String icon, int displayOrder) {
+        Mission m = new Mission();
+        m.setName(name);
+        m.setDescription(description);
+        m.setRewardCoin(rewardCoin);
+        m.setType(type);
+        m.setAction(action);
+        m.setTargetCount(targetCount);
+        m.setIcon(icon);
+        m.setDisplayOrder(displayOrder);
+        m.setIsActive(true);
+        return m;
     }
 
     private void createUserMissions(List<Mission> missions, List<User> users) {
@@ -821,16 +853,6 @@ public class DataInitializer {
     }
 
 
-    private Mission createMission(String name, Long reward, String type, String action, int targetCount) {
-        Mission mission = new Mission();
-        mission.setName(name);
-        mission.setRewardCoin(reward);
-        mission.setType(type);
-        mission.setAction(action);
-        mission.setTargetCount(targetCount);
-        mission.setIsActive(true);
-        return mission;
-    }
 
     /**
      * Cập nhật cover_url của stories và avatar_url của users
