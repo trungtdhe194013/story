@@ -303,6 +303,22 @@ public class StoryServiceImpl implements StoryService {
         return storyRepository.findCompleted().stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
+    @Override
+    public StoryResponse setCompletionStatus(Long id, boolean isCompleted) {
+        User currentUser = userService.getCurrentUser();
+        Story story = storyRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Story not found"));
+
+        boolean isAdmin = currentUser.getRoles().stream().anyMatch(r -> r.getName().equals("ADMIN"));
+        if (!story.getAuthor().getId().equals(currentUser.getId()) && !isAdmin) {
+            throw new UnauthorizedException("Bạn không có quyền cập nhật trạng thái truyện này");
+        }
+
+        story.setIsCompleted(isCompleted);
+        story.setCompletedAt(isCompleted ? java.time.LocalDateTime.now() : null);
+        return mapToResponse(storyRepository.save(story));
+    }
+
     // ─────────────────────────────────────────────
     // MAPPER
     // ─────────────────────────────────────────────

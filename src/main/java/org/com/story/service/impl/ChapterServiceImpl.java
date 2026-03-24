@@ -2,6 +2,7 @@ package org.com.story.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.ChapterRequest;
+import org.com.story.dto.request.ScheduleChapterRequest;
 import org.com.story.dto.response.ChapterResponse;
 import org.com.story.dto.response.CommentResponse;
 import org.com.story.entity.*;
@@ -36,6 +37,8 @@ public class ChapterServiceImpl implements ChapterService {
     @Lazy
     private final ReadingHistoryService readingHistoryService;
     private final WalletService walletService;
+    @Lazy
+    private final MissionService missionService;
 
     @Override
     public ChapterResponse createChapter(Long storyId, ChapterRequest request) {
@@ -91,6 +94,9 @@ public class ChapterServiceImpl implements ChapterService {
             try {
                 readingHistoryService.recordReading(currentUser.getId(), story.getId(), chapter.getId());
             } catch (Exception ignored) {}
+
+            // Track mission READ_CHAPTER
+            try { missionService.trackMissionAction("READ_CHAPTER"); } catch (Exception ignored) {}
 
             // Tăng viewCount
             chapter.setViewCount((chapter.getViewCount() != null ? chapter.getViewCount() : 0) + 1);
@@ -213,6 +219,26 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
+    public ChapterResponse schedulePublish(Long id, ScheduleChapterRequest request) {
+        User currentUser = userService.getCurrentUser();
+        Chapter chapter = chapterRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Chapter not found"));
+
+        if (!chapter.getStory().getAuthor().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedException("You don't have permission to schedule this chapter");
+        }
+
+        if (!"APPROVED".equals(chapter.getStatus())) {
+            throw new BadRequestException("Chapter phải được Reviewer APPROVE trước khi hẹn lịch. Hiện tại: " + chapter.getStatus());
+        }
+
+        chapter.setStatus("SCHEDULED");
+        chapter.setPublishAt(request.getPublishAt());
+        Chapter updated = chapterRepository.save(chapter);
+        return mapToResponse(updated, currentUser, Collections.emptyList());
+    }
+
+    @Override
     public ChapterResponse purchaseChapter(Long id) {
         User currentUser = userService.getCurrentUser();
         Chapter chapter = chapterRepository.findById(id)
@@ -263,6 +289,21 @@ public class ChapterServiceImpl implements ChapterService {
         // Ghi giao dịch
         walletService.createTransaction(currentUser.getId(), (long) -chapter.getCoinPrice(), "BUY", chapter.getId());
         walletService.createTransaction(author.getId(), (long) chapter.getCoinPrice(), "BUY", chapter.getId());
+
+        // Track mission BUY_CHAPTER
+        try { missionService.trackMissionAction("BUY_CHAPTER"); } catch (Exception ignored) {}
+
+        // Gửi thông báo cho tác giả
+        try {
+            notificationService.sendNotification(
+                    author,
+                    "NEW_PURCHASE",
+                    "Có người mua chương truyện của bạn!",
+                    "Người dùng " + currentUser.getFullName() + " đã mua chương '" + chapter.getTitle() + "' thuộc truyện '" + chapter.getStory().getTitle() + "'. Bạn nhận được " + chapter.getCoinPrice() + " xu.",
+                    chapter.getId(),
+                    "CHAPTER"
+            );
+        } catch (Exception ignored) {}
 
         return mapToResponse(chapter, currentUser, Collections.emptyList());
     }

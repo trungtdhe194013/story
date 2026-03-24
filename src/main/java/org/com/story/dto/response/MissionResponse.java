@@ -18,6 +18,8 @@ public class MissionResponse {
     private Long rewardCoin;
     /** DAILY, READ */
     private String type;
+    /** Hành động kích hoạt: LOGIN, READ_CHAPTER, COMMENT, FOLLOW_STORY, BUY_CHAPTER, SEND_GIFT */
+    private String action;
     /** Số lần phải thực hiện để hoàn thành (ví dụ: đọc 5 chương) */
     private Integer targetCount;
     private String icon;

@@ -37,4 +37,10 @@ public interface StoryService {
     List<StoryResponse> getTopRatedStories();
 
     List<StoryResponse> getCompletedStories();
+
+    /**
+     * Author cập nhật trạng thái bộ truyện: Ongoing ↔ Completed.
+     * isCompleted=true → badge "Hoàn thành", isCompleted=false → badge "Đang ra"
+     */
+    StoryResponse setCompletionStatus(Long id, boolean isCompleted);
 }

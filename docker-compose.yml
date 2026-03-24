@@ -32,14 +32,21 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-admin}
       # JPA
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      # App
-      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
+      # ⚠️ App base URL — PHẢI trùng với URL public (ngrok/domain)
+      # Dùng để tạo URL cho ảnh upload (avatar, cover...)
+      # Khi dùng ngrok: APP_BASE_URL=https://danille-laziest-yetta.ngrok-free.dev
+      APP_BASE_URL: ${APP_BASE_URL:-https://danille-laziest-yetta.ngrok-free.dev}
+      # PayOS webhook
+      PAYOS_WEBHOOK_URL: ${PAYOS_WEBHOOK_URL:-https://danille-laziest-yetta.ngrok-free.dev/api/payment/ipn}
       # Mail
       SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
       SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       # OAuth2 Google
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-your-google-client-id}
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-your-google-client-secret}
+    volumes:
+      # ✅ Persist ảnh upload — không bị mất khi restart container
+      - uploads_data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,3 +54,5 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:   # ✅ Volume cho ảnh upload
+

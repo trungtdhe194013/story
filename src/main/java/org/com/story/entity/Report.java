@@ -28,6 +28,7 @@ public class Report {
 
     private String targetType; // STORY, CHAPTER, COMMENT
     private Long targetId;
+    private Long targetOwnerId; // chủ sở hữu nội dung bị report
 
     /** Phân loại: SPAM, COPYRIGHT, INAPPROPRIATE, VIOLENCE, OTHER */
     private String category;

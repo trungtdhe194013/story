@@ -1,6 +1,7 @@
 package org.com.story.service;
 
 import org.com.story.dto.request.ChapterRequest;
+import org.com.story.dto.request.ScheduleChapterRequest;
 import org.com.story.dto.response.ChapterResponse;
 
 import java.util.List;
@@ -15,8 +16,14 @@ public interface ChapterService {
     /** Author nộp chapter lên Reviewer (DRAFT/EDITED → PENDING_REVIEW) */
     ChapterResponse submitForReview(Long id);
 
-    /** Author tự publish sau khi Reviewer đã APPROVE (APPROVED → PUBLISHED) */
+    /** Author tự publish ngay sau khi Reviewer đã APPROVE (APPROVED → PUBLISHED) */
     ChapterResponse publishApprovedChapter(Long id);
+
+    /**
+     * Author hẹn lịch publish vào thời điểm cụ thể trong tương lai.
+     * Status: APPROVED → SCHEDULED. Cron job sẽ tự đổi sang PUBLISHED đúng giờ.
+     */
+    ChapterResponse schedulePublish(Long id, ScheduleChapterRequest request);
 
     ChapterResponse purchaseChapter(Long id);
 }

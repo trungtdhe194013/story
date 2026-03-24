@@ -13,6 +13,8 @@ import org.com.story.repository.GiftRepository;
 import org.com.story.repository.StoryRepository;
 import org.com.story.repository.WalletRepository;
 import org.com.story.service.GiftService;
+import org.com.story.service.MissionService;
+import org.com.story.service.UserBlockService;
 import org.com.story.service.UserService;
 import org.com.story.service.WalletService;
 import org.com.story.service.NotificationService;
@@ -33,8 +35,11 @@ public class GiftServiceImpl implements GiftService {
     private final WalletRepository walletRepository;
     private final UserService userService;
     private final WalletService walletService;
+    private final UserBlockService userBlockService;
     @Lazy
     private final NotificationService notificationService;
+    @Lazy
+    private final MissionService missionService;
 
     @Override
     public GiftResponse sendGift(GiftRequest request) {
@@ -48,6 +53,11 @@ public class GiftServiceImpl implements GiftService {
         // Không thể tặng cho chính mình
         if (sender.getId().equals(receiver.getId())) {
             throw new BadRequestException("You cannot send a gift to yourself");
+        }
+
+        // Kiểm tra xem tác giả có chặn người gửi không
+        if (userBlockService.isBlocked(receiver.getId(), sender.getId())) {
+            throw new BadRequestException("Bạn đã bị tác giả chặn, không thể tặng quà cho truyện này");
         }
 
         // Kiểm tra số dư
@@ -97,6 +107,8 @@ public class GiftServiceImpl implements GiftService {
                     savedGift.getId(), "GIFT"
             );
         } catch (Exception ignored) {}
+
+        try { missionService.trackMissionAction("SEND_GIFT"); } catch (Exception ignored) {}
 
         return mapToResponse(savedGift);
     }

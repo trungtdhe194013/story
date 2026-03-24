@@ -31,13 +31,17 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     /**
-     * Serve ảnh upload từ thư mục local: uploads/avatars/
-     * Truy cập qua URL: /uploads/avatars/ten-file.jpg
+     * Serve ảnh upload từ thư mục local: uploads/avatars/ và uploads/covers/
+     * Truy cập qua URL: /uploads/avatars/ten-file.jpg hoặc /uploads/covers/ten-file.jpg
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String uploadPath = Paths.get("uploads").toAbsolutePath().toUri().toString();
+        // Lấy đường dẫn tuyệt đối của thư mục uploads
+        String absoluteUploadPath = Paths.get("uploads").toAbsolutePath().toString();
+        // Chuẩn hoá path: dùng forward slash, thêm "file:" prefix và trailing slash
+        String resourceLocation = "file:" + absoluteUploadPath.replace("\\", "/") + "/";
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(uploadPath + "/");
+                .addResourceLocations(resourceLocation)
+                .setCachePeriod(0); // Không cache trong môi trường dev
     }
 }

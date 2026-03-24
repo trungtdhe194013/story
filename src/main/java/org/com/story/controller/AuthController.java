@@ -18,6 +18,7 @@ import org.com.story.entity.User;
 import org.com.story.exception.AccountBannedException;
 import org.com.story.repository.UserRepository;
 import org.com.story.security.JwtUtil;
+import org.com.story.service.MissionService;
 import org.com.story.service.RefreshTokenService;
 import org.com.story.service.UserService;
 import org.springframework.http.MediaType;
@@ -40,6 +41,7 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final MissionService missionService;
 
     @PostMapping("/sign-up")
     @Operation(
@@ -90,6 +92,27 @@ public class AuthController {
 
         String accessToken = jwtUtil.generateAccessToken(req.getEmail());
         RefreshToken refreshToken = refreshTokenService.create(req.getEmail());
+
+        // Set SecurityContext manually so trackMissionAction("LOGIN") can find current user
+        // (JwtFilter skips /api/auth/**, so SecurityContext is empty without this)
+        try {
+            org.springframework.security.core.userdetails.UserDetails ud =
+                    org.springframework.security.core.userdetails.User.withUsername(user.getEmail())
+                            .password(user.getPassword())
+                            .authorities(user.getRoles().stream()
+                                    .map(r -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + r.getName()))
+                                    .collect(java.util.stream.Collectors.toList()))
+                            .build();
+            org.springframework.security.authentication.UsernamePasswordAuthenticationToken authToken =
+                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                            ud, null, ud.getAuthorities());
+            org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authToken);
+        } catch (Exception ignored) {}
+
+        try { missionService.trackMissionAction("LOGIN"); } catch (Exception ignored) {}
+
+        // Clear context after use (stateless API — no session)
+        try { org.springframework.security.core.context.SecurityContextHolder.clearContext(); } catch (Exception ignored) {}
 
         return new LoginResponse(accessToken, refreshToken.getToken());
     }

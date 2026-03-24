@@ -38,7 +38,7 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
     /** Chapters của một editor */
     List<Chapter> findByEditorId(Long editorId);
 
-    /** Scheduled chapters cần auto-publish */
-    @Query("SELECT c FROM Chapter c WHERE c.status = 'APPROVED' AND c.publishAt IS NOT NULL AND c.publishAt <= :now")
+    /** Scheduled chapters cần auto-publish (SCHEDULED + publishAt đã đến) */
+    @Query("SELECT c FROM Chapter c WHERE c.status = 'SCHEDULED' AND c.publishAt IS NOT NULL AND c.publishAt <= :now")
     List<Chapter> findScheduledForPublish(@Param("now") LocalDateTime now);
 }

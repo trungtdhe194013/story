@@ -9,6 +9,7 @@ import org.com.story.exception.NotFoundException;
 import org.com.story.repository.StoryRepository;
 import org.com.story.repository.UserRepository;
 import org.com.story.service.FollowService;
+import org.com.story.service.MissionService;
 import org.com.story.service.NotificationService;
 import org.com.story.service.UserService;
 import org.springframework.context.annotation.Lazy;
@@ -28,6 +29,8 @@ public class FollowServiceImpl implements FollowService {
     private final UserService userService;
     @Lazy
     private final NotificationService notificationService;
+    @Lazy
+    private final MissionService missionService;
 
     @Override
     public FollowResponse toggleFollow(Long storyId) {
@@ -70,6 +73,9 @@ public class FollowServiceImpl implements FollowService {
                     );
                 } catch (Exception ignored) {}
             }
+
+            // Track mission FOLLOW_STORY
+            try { missionService.trackMissionAction("FOLLOW_STORY"); } catch (Exception ignored) {}
 
             return FollowResponse.builder()
                     .storyId(storyId)

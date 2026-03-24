@@ -11,7 +11,11 @@ import org.com.story.repository.ChapterRepository;
 import org.com.story.repository.CommentRepository;
 import org.com.story.repository.StoryRepository;
 import org.com.story.service.CommentService;
+import org.com.story.service.MissionService;
+import org.com.story.service.UserBlockService;
 import org.com.story.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,18 +33,18 @@ public class CommentServiceImpl implements CommentService {
     private final ChapterRepository chapterRepository;
     private final StoryRepository storyRepository;
     private final UserService userService;
+    private final UserBlockService userBlockService;
+
+    private MissionService missionService;
+
+    @Autowired
+    public void setMissionService(@Lazy MissionService missionService) {
+        this.missionService = missionService;
+    }
 
     @Override
     public CommentResponse createComment(CommentRequest request) {
         User currentUser = userService.getCurrentUser();
-
-        // Kiểm tra xem user có đang bị hạn chế bình luận không
-        if (currentUser.getCommentBanUntil() != null
-                && currentUser.getCommentBanUntil().isAfter(java.time.LocalDateTime.now())) {
-            throw new BadRequestException(
-                    "Bạn đang bị hạn chế quyền bình luận đến " + currentUser.getCommentBanUntil()
-                    + ". Lý do: vi phạm quy định cộng đồng.");
-        }
 
         Comment comment = new Comment();
         comment.setUser(currentUser);
@@ -50,10 +54,20 @@ public class CommentServiceImpl implements CommentService {
             Chapter chapter = chapterRepository.findById(request.getChapterId())
                     .orElseThrow(() -> new NotFoundException("Chapter not found"));
             comment.setChapter(chapter);
+            // Kiểm tra block: tác giả truyện có chặn user này không?
+            Long authorId = chapter.getStory().getAuthor().getId();
+            if (userBlockService.isBlocked(authorId, currentUser.getId())) {
+                throw new BadRequestException("Bạn đã bị tác giả chặn, không thể bình luận truyện này");
+            }
         } else if (request.getStoryId() != null) {
             Story story = storyRepository.findById(request.getStoryId())
                     .orElseThrow(() -> new NotFoundException("Story not found"));
             comment.setStory(story);
+            // Kiểm tra block
+            Long authorId = story.getAuthor().getId();
+            if (userBlockService.isBlocked(authorId, currentUser.getId())) {
+                throw new BadRequestException("Bạn đã bị tác giả chặn, không thể bình luận truyện này");
+            }
         } else {
             throw new BadRequestException("Either chapterId or storyId is required");
         }
@@ -64,7 +78,12 @@ public class CommentServiceImpl implements CommentService {
             comment.setParent(parent);
         }
 
-        return mapToResponse(commentRepository.save(comment));
+        Comment saved = commentRepository.save(comment);
+
+        // Track mission COMMENT
+        try { missionService.trackMissionAction("COMMENT"); } catch (Exception ignored) {}
+
+        return mapToResponse(saved);
     }
 
     @Override

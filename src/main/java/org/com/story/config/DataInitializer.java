@@ -176,45 +176,153 @@ public class DataInitializer {
         java.util.Map<String, Category> catMap = new java.util.HashMap<>();
         for (Category c : categories) catMap.put(c.getName(), c);
 
-        // Stories của Author 1 - APPROVED
-        stories.add(createStory(author1, "Hành Trình Phép Thuật",
-            "Câu chuyện về một cậu bé phát hiện ra khả năng phép thuật đặc biệt và hành trình trở thành pháp sư vĩ đại nhất.",
-            "APPROVED", Set.of(catMap.get("Fantasy"), catMap.get("Adventure")), 1250L));
-        stories.add(createStory(author1, "Vương Quốc Thất Lạc",
-            "Cuộc phiêu lưu tìm kiếm vương quốc huyền thoại đã mất tích hàng nghìn năm.",
-            "APPROVED", Set.of(catMap.get("Fantasy"), catMap.get("Historical")), 890L));
+        // ═══════════════════════════════════════════════════════════════════════
+        // AUTHOR 1 — Nguyễn Văn A  (7 truyện)
+        // ═══════════════════════════════════════════════════════════════════════
+        stories.add(createStory(author1, "Lục Địa Rồng Thiêng",
+            "Tại lục địa Vạn Linh, nơi loài rồng và con người cùng tồn tại, chàng trai mồ côi Minh Khôi vô tình đánh thức "
+            + "một con rồng cổ đại đang ngủ quên dưới lòng đất ngàn năm. Từ đó, cậu bị cuốn vào cuộc chiến giữa năm "
+            + "vương quốc tranh giành quyền kiểm soát sức mạnh rồng thiêng. Với sự giúp đỡ của nữ pháp sư Linh Lan "
+            + "và kiếm sĩ mù Trần Vũ, Minh Khôi phải tìm cách hàn gắn mối quan hệ giữa con người và rồng trước khi "
+            + "thế giới rơi vào hỗn loạn.",
+            "APPROVED", Set.of(catMap.get("Fantasy"), catMap.get("Adventure")), 18500L));
+
+        stories.add(createStory(author1, "Mật Mã Sài Gòn",
+            "Năm 1967, giữa lòng Sài Gòn hoa lệ, điệp viên Phạm Quốc Bảo nhận nhiệm vụ giải mã một bức thư được giấu "
+            + "trong bức tranh sơn dầu của họa sĩ nổi tiếng Trần Văn Thanh. Bức thư chứa tọa độ kho vàng bí mật mà "
+            + "cả hai phe đều muốn chiếm đoạt. Khi danh tính bị lộ, Bảo phải chạy đua với thời gian, lách qua mạng "
+            + "lưới gián điệp dày đặc, đồng thời đối mặt với sự phản bội từ chính người mà anh tin tưởng nhất.",
+            "APPROVED", Set.of(catMap.get("Thriller"), catMap.get("Historical")), 12300L));
+
+        stories.add(createStory(author1, "Tiệm Cà Phê Cuối Phố",
+            "Hà Linh, một cô gái 25 tuổi, quyết định bỏ công việc văn phòng ngột ngạt để mở một tiệm cà phê nhỏ "
+            + "ở cuối con phố cũ tại Hà Nội. Tại đây, cô gặp Đức — chàng nhạc sĩ đường phố bí ẩn, luôn đến "
+            + "đúng giờ đóng cửa để gọi một ly cà phê đen. Qua từng mùa, qua từng giai điệu guitar rỉ rả trong đêm, "
+            + "hai tâm hồn cô đơn dần tìm thấy nhau. Nhưng Đức đang che giấu một bí mật từ quá khứ.",
+            "APPROVED", Set.of(catMap.get("Romance"), catMap.get("Contemporary")), 34200L));
+
+        stories.add(createStory(author1, "Bóng Ma Căn Biệt Thự",
+            "Gia đình nhà Trần chuyển đến một căn biệt thự Pháp cổ ở Đà Lạt với giá thuê rẻ bất ngờ. Ban đầu, "
+            + "mọi thứ tưởng như hoàn hảo — sương mù bao phủ, vườn hoa dã quỳ, và sự tĩnh lặng tuyệt đối. "
+            + "Nhưng đến đêm thứ ba, cô con gái út bắt đầu nói chuyện với 'bạn tưởng tượng' không ai nhìn thấy. "
+            + "Từng vết nứt trên tường bắt đầu rỉ ra chất lỏng đỏ thẫm. Và tiếng khóc trẻ con vang lên từ tầng hầm "
+            + "đã bị bít kín hàng chục năm.",
+            "APPROVED", Set.of(catMap.get("Horror"), catMap.get("Mystery")), 9800L));
+
+        stories.add(createStory(author1, "Kiếm Thần Truyền Kỳ",
+            "Trong thế giới Tu Tiên, nơi các môn phái tranh đấu để trở thành bá chủ, Lâm Phong — một đệ tử "
+            + "tầm thường của Thanh Vân Phái — vô tình nhặt được mảnh kiếm gãy chứa linh hồn của Kiếm Thần "
+            + "thời thượng cổ. Từ một kẻ bị khinh thường, Lâm Phong bắt đầu tu luyện kiếm thuật thất truyền, "
+            + "vượt qua các kỳ thi môn phái, và dần hé lộ âm mưu diệt thế giới của Ma Giáo.",
+            "APPROVED", Set.of(catMap.get("Fantasy"), catMap.get("Action")), 45600L));
+
+        stories.add(createStory(author1, "Hành Tinh Xanh Cuối Cùng",
+            "Năm 2487, Trái Đất đã không còn khả năng sinh sống. Con tàu Hy Vọng mang theo 10.000 người "
+            + "cuối cùng của loài người bay qua vũ trụ tìm kiếm ngôi nhà mới. Kỹ sư trẻ Nguyễn Thiên An phát hiện "
+            + "tín hiệu lạ từ một hành tinh chưa được khám phá. Khi con tàu đổ bộ, họ nhận ra mình không phải là "
+            + "sinh vật đầu tiên đặt chân đến đây — và những gì chờ đợi họ còn đáng sợ hơn cả sự tuyệt chủng.",
+            "APPROVED", Set.of(catMap.get("Science Fiction"), catMap.get("Adventure")), 28900L));
+
         stories.add(createStory(author1, "Chiến Binh Ánh Sáng",
-            "Một chiến binh trẻ tuổi chiến đấu chống lại thế lực hắc ám để bảo vệ thế giới.",
+            "Một chiến binh trẻ tuổi từ ngôi làng nhỏ bé phát hiện ra mình sở hữu sức mạnh ánh sáng cổ đại. "
+            + "Khi bóng tối lan rộng khắp vương quốc, cậu phải tập hợp những chiến binh từ năm bộ tộc "
+            + "để đối đầu với Chúa Tể Hắc Ám đã ngủ quên ngàn năm, nay đang tỉnh giấc.",
             "PENDING", Set.of(catMap.get("Action"), catMap.get("Fantasy")), 0L));
 
-        // Stories của Author 2 - APPROVED
-        stories.add(createStory(author2, "Tình Yêu Qua Mùa",
-            "Một câu chuyện tình lãng mạn qua bốn mùa của năm.",
-            "APPROVED", Set.of(catMap.get("Romance"), catMap.get("Drama")), 2100L));
-        stories.add(createStory(author2, "Bí Ẩn Thành Phố",
-            "Những bí mật đen tối ẩn giấu trong một thành phố hiện đại.",
-            "APPROVED", Set.of(catMap.get("Mystery"), catMap.get("Thriller")), 750L));
+        // ═══════════════════════════════════════════════════════════════════════
+        // AUTHOR 2 — Trần Thị B  (7 truyện)
+        // ═══════════════════════════════════════════════════════════════════════
+        stories.add(createStory(author2, "Ngọn Gió Mùa Hè",
+            "Câu chuyện tình yêu tuổi học trò giữa Khánh — chàng trai lớp trưởng lạnh lùng — và Hạ Vy, "
+            + "cô nàng chuyển trường từ Sài Gòn ra Hà Nội. Mùa hè năm lớp 11, một chuyến đi biển Quy Nhơn "
+            + "cùng lớp đã thay đổi tất cả. Qua những bức thư tay, những lần trốn học lên sân thượng ngắm hoàng hôn, "
+            + "họ nhận ra tình yêu đầu đời chưa bao giờ là đơn giản. Kết thúc mùa hè, liệu họ có dũng cảm "
+            + "nói lời yêu thương?",
+            "APPROVED", Set.of(catMap.get("Romance"), catMap.get("Young Adult")), 52100L));
+
+        stories.add(createStory(author2, "Vụ Án Hồ Gươm",
+            "Thám tử tư Hoàng Nam nhận được cuộc gọi lúc 2 giờ sáng: một xác chết nổi trên Hồ Gươm đúng "
+            + "đêm Trung Thu. Nạn nhân là giáo sư sử học nổi tiếng — người vừa công bố phát hiện chấn động "
+            + "về lăng mộ bí mật dưới lòng hồ. Khi điều tra, Nam phát hiện ra một mạng lưới buôn bán cổ vật "
+            + "xuyên quốc gia, và bản thân mình cũng trở thành mục tiêu tiếp theo.",
+            "APPROVED", Set.of(catMap.get("Mystery"), catMap.get("Thriller")), 15600L));
+
+        stories.add(createStory(author2, "Mẹ Đơn Thân",
+            "Ngọc Ánh, 30 tuổi, ly hôn và một mình nuôi con gái 5 tuổi tại Sài Gòn. Cô làm việc ở hai nơi — "
+            + "buổi sáng là nhân viên kế toán, buổi tối bán hàng online. Cuộc sống đầy khó khăn nhưng nụ cười "
+            + "của con gái là động lực để cô bước tiếp. Khi gặp lại Tuấn — người yêu cũ thời đại học — tại buổi "
+            + "họp phụ huynh trường con, quá khứ và hiện tại va chạm. Liệu cô có cho phép mình yêu thêm lần nữa?",
+            "APPROVED", Set.of(catMap.get("Drama"), catMap.get("Contemporary")), 38700L));
+
+        stories.add(createStory(author2, "Đảo Hoang Sinh Tồn",
+            "Chuyến bay VN-372 từ Hà Nội đi Singapore gặp nạn, rơi xuống một hòn đảo không có trên bản đồ. "
+            + "12 hành khách sống sót phải đối mặt với thiên nhiên khắc nghiệt, thú dữ, và quan trọng nhất — "
+            + "sự nghi ngờ lẫn nhau. Khi đồ ăn cạn dần và hy vọng được cứu ngày càng mờ nhạt, bản chất thật "
+            + "của mỗi con người bắt đầu lộ ra. Ai là người đáng tin? Ai đang giấu bí mật chết người?",
+            "APPROVED", Set.of(catMap.get("Thriller"), catMap.get("Adventure")), 21300L));
+
+        stories.add(createStory(author2, "Hậu Trường Showbiz",
+            "Trâm Anh, 22 tuổi, bước chân vào làng giải trí với giấc mơ trở thành ca sĩ. Nhưng đằng sau "
+            + "ánh đèn sân khấu lấp lánh là một thế giới tàn khốc — hợp đồng nô lệ, scandal bị dàn dựng, "
+            + "và luật chơi ngầm mà không ai dám nói. Khi bị ép phải lựa chọn giữa danh vọng và nhân phẩm, "
+            + "Trâm Anh quyết định phanh phui tất cả, dù biết rằng cô sẽ đối mặt với sự trả thù.",
+            "APPROVED", Set.of(catMap.get("Drama"), catMap.get("Contemporary")), 67800L));
+
         stories.add(createStory(author2, "Cuộc Đời Tôi",
-            "Câu chuyện tự truyện về cuộc đời đầy thăng trầm.",
+            "Câu chuyện tự truyện về cuộc đời đầy thăng trầm của một thanh niên lớn lên từ vùng quê nghèo "
+            + "miền Trung, vượt qua nghịch cảnh để trở thành doanh nhân thành đạt tại Sài Gòn.",
             "DRAFT", Set.of(catMap.get("Drama"), catMap.get("Contemporary")), 0L));
-        // Story bị REJECTED để test nghiệp vụ admin reject
+
         stories.add(createStory(author2, "Truyện Vi Phạm",
             "Truyện có nội dung vi phạm quy định - dùng để test reject.",
             "REJECTED", Set.of(catMap.get("Drama")), 0L));
 
-        // Stories của Author 3
-        stories.add(createStory(author3, "Thám Tử Số 1",
-            "Thám tử tài ba giải quyết những vụ án phức tạp nhất.",
-            "APPROVED", Set.of(catMap.get("Mystery"), catMap.get("Thriller")), 1800L));
-        stories.add(createStory(author3, "Du Hành Thời Gian",
-            "Khám phá quá khứ và tương lai qua cỗ máy thời gian.",
-            "APPROVED", Set.of(catMap.get("Science Fiction"), catMap.get("Adventure")), 3200L));
+        // ═══════════════════════════════════════════════════════════════════════
+        // AUTHOR 3 — Lê Văn C  (6 truyện)
+        // ═══════════════════════════════════════════════════════════════════════
+        stories.add(createStory(author3, "Thám Tử Tâm Linh",
+            "Đoàn Minh Trí, thám tử 35 tuổi, có khả năng đặc biệt: anh có thể nhìn thấy dấu vết tâm linh "
+            + "tại hiện trường vụ án. Khi cảnh sát bế tắc trước loạt vụ mất tích bí ẩn ở Huế, họ phải nhờ đến "
+            + "Trí. Mỗi nạn nhân đều nhận được một bức thư cổ trước khi biến mất, và tất cả đều liên quan đến "
+            + "một ngôi đền bị phong ấn. Trí phải đối mặt với thứ gì đó vượt xa khả năng lý giải.",
+            "APPROVED", Set.of(catMap.get("Mystery"), catMap.get("Paranormal")), 22400L));
+
+        stories.add(createStory(author3, "Cổng Thời Gian 2045",
+            "Tiến sĩ Trần Quang Huy phát minh ra cỗ máy du hành thời gian tại Viện Khoa học Việt Nam. "
+            + "Chuyến du hành đầu tiên đưa anh về Sài Gòn năm 1975. Tại đây, anh vô tình gặp ông nội mình — "
+            + "một người lính trẻ. Khi cố gắng quay về, Huy phát hiện cỗ máy bị hỏng. Anh buộc phải sống "
+            + "trong quá khứ, cẩn thận không thay đổi lịch sử, trong khi tìm cách sửa chữa cỗ máy từ "
+            + "công nghệ của 70 năm trước.",
+            "APPROVED", Set.of(catMap.get("Science Fiction"), catMap.get("Historical")), 41200L));
+
+        stories.add(createStory(author3, "Học Viện Dị Năng",
+            "Tại Việt Nam, 1% dân số sinh ra với khả năng siêu nhiên — di chuyển đồ vật bằng ý nghĩ, "
+            + "đọc suy nghĩ người khác, điều khiển lửa. Chính phủ thành lập Học Viện Thiên Phú để đào tạo "
+            + "và kiểm soát những người này. Tuấn, 16 tuổi, vừa phát hiện mình có năng lực hiếm gặp — "
+            + "anh có thể sao chép bất kỳ dị năng nào mà anh chứng kiến. Điều này khiến anh trở thành "
+            + "tài sản quý giá nhất và cũng là mục tiêu nguy hiểm nhất.",
+            "APPROVED", Set.of(catMap.get("Paranormal"), catMap.get("Young Adult")), 55800L));
+
+        stories.add(createStory(author3, "Bếp Của Ngoại",
+            "Nguyễn Bảo Ngọc, đầu bếp sao Michelin tại Paris, nhận tin bà ngoại ở Hội An bệnh nặng. "
+            + "Cô trở về Việt Nam và phát hiện cuốn sổ tay ghi chép công thức nấu ăn bí mật của bà — "
+            + "mỗi món ăn gắn liền với một câu chuyện, một ký ức, một bài học cuộc sống. Qua từng trang sổ, "
+            + "Ngọc không chỉ tìm lại hương vị tuổi thơ mà còn hiểu ra ý nghĩa thật sự của 'nhà' "
+            + "và quyết định liệu mình nên ở lại hay quay về.",
+            "APPROVED", Set.of(catMap.get("Drama"), catMap.get("Contemporary")), 31500L));
+
         stories.add(createStory(author3, "Ngôi Nhà Ma Ám",
-            "Những sự kiện kinh hoàng xảy ra trong ngôi nhà bị ma ám.",
+            "Một nhóm 5 sinh viên thuê căn nhà cổ ở ngoại ô Huế để nghiên cứu cho luận văn về kiến trúc "
+            + "thời Nguyễn. Đêm đầu tiên, camera an ninh ghi lại bóng dáng ai đó đi lại trong phòng trống. "
+            + "Đêm thứ hai, mọi cánh cửa tự mở ra lúc 3 giờ sáng. Đêm thứ ba, một sinh viên biến mất.",
             "PENDING", Set.of(catMap.get("Horror"), catMap.get("Paranormal")), 0L));
-        stories.add(createStory(author3, "Học Viện Siêu Nhiên",
-            "Trường học dành cho những học sinh có năng lực đặc biệt.",
-            "APPROVED", Set.of(catMap.get("Paranormal"), catMap.get("Young Adult")), 4500L));
+
+        stories.add(createStory(author3, "Vua Đầu Bếp Đường Phố",
+            "Từ một gánh bún bò Huế ven đường, anh chàng Đức Phúc nuôi giấc mơ biến món ăn đường phố "
+            + "Việt Nam thành ẩm thực được thế giới công nhận. Hành trình từ quán vỉa hè đến cuộc thi "
+            + "MasterChef quốc tế, với các thử thách nấu ăn, tình bạn, cạnh tranh, và bài học rằng "
+            + "món ăn ngon nhất luôn được nấu từ trái tim.",
+            "APPROVED", Set.of(catMap.get("Drama"), catMap.get("Comedy")), 19700L));
 
         stories.removeIf(Objects::isNull);
         System.out.println("📚 Đã tạo " + stories.size() + " stories");
@@ -545,17 +653,27 @@ public class DataInitializer {
     // ===================== MISSIONS & USER MISSIONS =====================
     private List<Mission> createMissions() {
         if (missionRepository.count() > 0) {
-            return missionRepository.findAll();
+            // Cập nhật lại targetCount cho các mission cũ nếu bị null hoặc sai lệch
+            List<Mission> existing = missionRepository.findAll();
+            for (Mission m : existing) {
+                if (m.getName().equals("Đọc 5 chương truyện")) {
+                    m.setTargetCount(5);
+                } else if (m.getTargetCount() == null) {
+                    m.setTargetCount(1);
+                }
+            }
+            missionRepository.saveAll(existing);
+            return existing;
         }
 
         List<Mission> missions = new ArrayList<>();
-        missions.add(missionRepository.save(createMission("Đăng nhập hàng ngày", 10L, "DAILY")));
-        missions.add(missionRepository.save(createMission("Đọc 1 chương truyện", 5L, "READ")));
-        missions.add(missionRepository.save(createMission("Đọc 5 chương truyện", 20L, "READ")));
-        missions.add(missionRepository.save(createMission("Bình luận 1 chương", 5L, "DAILY")));
-        missions.add(missionRepository.save(createMission("Theo dõi 1 truyện mới", 10L, "DAILY")));
-        missions.add(missionRepository.save(createMission("Mua 1 chương truyện", 15L, "READ")));
-        missions.add(missionRepository.save(createMission("Tặng quà cho tác giả", 20L, "DAILY")));
+        missions.add(missionRepository.save(createMission("Đăng nhập hàng ngày", 10L, "DAILY", "LOGIN", 1)));
+        missions.add(missionRepository.save(createMission("Đọc 1 chương truyện", 5L, "READ", "READ_CHAPTER", 1)));
+        missions.add(missionRepository.save(createMission("Đọc 5 chương truyện", 20L, "READ", "READ_CHAPTER", 5)));
+        missions.add(missionRepository.save(createMission("Bình luận 1 chương", 5L, "DAILY", "COMMENT", 1)));
+        missions.add(missionRepository.save(createMission("Theo dõi 1 truyện mới", 10L, "DAILY", "FOLLOW_STORY", 1)));
+        missions.add(missionRepository.save(createMission("Mua 1 chương truyện", 15L, "READ", "BUY_CHAPTER", 1)));
+        missions.add(missionRepository.save(createMission("Tặng quà cho tác giả", 20L, "DAILY", "SEND_GIFT", 1)));
         System.out.println("🎯 Đã tạo " + missions.size() + " missions");
         return missions;
     }
@@ -589,20 +707,39 @@ public class DataInitializer {
     }
 
     private String generateChapterContent(String storyTitle, int chapterNum) {
-        return String.format(
-                """
-                        Đây là nội dung của chương %d trong câu chuyện '%s'.
-                        
-                        Câu chuyện đang dần dần hấp dẫn hơn. Nhân vật chính đang phải đối mặt với những thử thách mới. \
-                        Những bí mật từ quá khứ đang dần được hé lộ.
-                        
-                        Trong chương này, độc giả sẽ được khám phá thêm về thế giới và các nhân vật. \
-                        Những diễn biến bất ngờ sẽ làm cho câu chuyện trở nên kịch tính hơn bao giờ hết.
-                        
-                        Hãy tiếp tục theo dõi để biết những gì sẽ xảy ra tiếp theo!
-                        
-                        [Nội dung đầy đủ của chương %d...]""",
-            chapterNum, storyTitle, chapterNum
+        String[] paragraphs = {
+            "Ánh nắng chiều xuyên qua tán lá, tạo nên những vệt sáng nhảy nhót trên mặt đất ẩm ướt. Nhân vật chính đứng lặng trước khung cảnh, lòng trĩu nặng bởi hàng nghìn câu hỏi không lời đáp.",
+            "Tiếng gió rít qua khe cửa như tiếng thì thầm của những linh hồn cổ xưa. Không ai biết rằng bí mật ẩn giấu trong bóng tối đang dần được hé lộ, từng chút một, như cách mà bình minh xua tan màn đêm.",
+            "\"Nếu ngươi muốn biết sự thật, hãy sẵn sàng đối mặt với nỗi đau\" — giọng nói vang lên từ phía sau, trầm ấm nhưng đầy uy lực. Đó là người mà ai cũng nghĩ đã chết từ lâu.",
+            "Con đường phía trước mờ mịt trong sương dày đặc. Mỗi bước chân đều là một quyết định, mỗi hơi thở đều mang theo hy vọng mỏng manh. Nhưng họ không có lựa chọn nào khác — phải tiến về phía trước.",
+            "Trận chiến diễn ra nhanh hơn dự kiến. Tiếng kiếm va nhau vang lên chói tai, tia lửa bắn ra từ mỗi nhát chém. Máu thấm vào đất, nhưng không ai sẵn sàng lùi bước.",
+            "Trong căn phòng tối om, chỉ có ánh nến leo lắt soi sáng những dòng chữ cổ trên tấm bản đồ đã ngả vàng. Nếu giải mã được, họ sẽ tìm ra câu trả lời cho tất cả. Nếu thất bại, mọi thứ sẽ kết thúc.",
+            "Nụ cười ấy — dịu dàng nhưng buồn bã — khắc sâu vào ký ức như một vết thương không bao giờ lành. Đôi mắt nhìn nhau lần cuối trước khi con đường rẽ hai ngả.",
+            "\"Chúng ta còn thời gian không?\" — câu hỏi treo lơ lửng trong không khí nặng nề. Không ai trả lời, vì tất cả đều biết câu trả lời nhưng không ai muốn nói ra.",
+            "Thành phố về đêm lung linh ánh đèn, nhưng phía sau những tòa nhà chọc trời là những con hẻm tối tăm. Ở đó, những cuộc đời bị lãng quên đang âm thầm giấu đi những câu chuyện chưa kể.",
+            "Giọt mưa đầu tiên rơi xuống, rồi hàng triệu giọt nối tiếp nhau, cứ thế tuôn trào. Cơn bão không chỉ đến từ bầu trời — nó đến từ sâu thẳm bên trong tâm hồn mỗi người."
+        };
+
+        int idx = (chapterNum - 1) % paragraphs.length;
+        int idx2 = (chapterNum) % paragraphs.length;
+        int idx3 = (chapterNum + 1) % paragraphs.length;
+
+        return String.format("""
+                %s
+
+                %s
+
+                %s
+
+                Cuộc hành trình trong '%s' tiếp tục với những bước ngoặt không ai ngờ tới. \
+                Chương %d mở ra một trang mới, nơi mà ranh giới giữa đúng và sai trở nên mờ nhạt hơn bao giờ hết.
+
+                Những nhân vật quen thuộc đang thay đổi — có người trở nên mạnh mẽ hơn, \
+                có người gục ngã trước áp lực. Và ẩn sau tất cả, một thế lực bí ẩn đang lặng lẽ giật dây.
+
+                Hãy tiếp tục theo dõi để biết điều gì sẽ xảy ra tiếp theo...""",
+            paragraphs[idx], paragraphs[idx2], paragraphs[idx3],
+            storyTitle, chapterNum
         );
     }
 
@@ -684,11 +821,14 @@ public class DataInitializer {
     }
 
 
-    private Mission createMission(String name, Long reward, String type) {
+    private Mission createMission(String name, Long reward, String type, String action, int targetCount) {
         Mission mission = new Mission();
         mission.setName(name);
         mission.setRewardCoin(reward);
         mission.setType(type);
+        mission.setAction(action);
+        mission.setTargetCount(targetCount);
+        mission.setIsActive(true);
         return mission;
     }
 

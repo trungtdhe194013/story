@@ -28,6 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         return "OPTIONS".equalsIgnoreCase(request.getMethod())
+                || path.startsWith("/uploads/")       // ✅ static uploaded files
                 || path.startsWith("/api/auth")
                 || path.startsWith("/api/health")
                 || path.startsWith("/api/payment/ipn")

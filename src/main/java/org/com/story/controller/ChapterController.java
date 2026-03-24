@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.com.story.dto.request.ChapterRequest;
+import org.com.story.dto.request.ScheduleChapterRequest;
 import org.com.story.dto.response.ChapterResponse;
 import org.com.story.service.ChapterService;
 import org.springframework.http.HttpStatus;
@@ -79,6 +80,20 @@ public class ChapterController {
             security = @SecurityRequirement(name = "bearerAuth"))
     public ChapterResponse publishApprovedChapter(@PathVariable Long id) {
         return chapterService.publishApprovedChapter(id);
+    }
+
+    /**
+     * Author hẹn lịch publish vào ngày giờ cụ thể trong tương lai.
+     * Status: APPROVED → SCHEDULED. Cron job mỗi 15 phút sẽ tự đổi sang PUBLISHED đúng giờ.
+     */
+    @PostMapping("/{id}/schedule")
+    @Operation(summary = "Schedule chapter publish (AUTHOR only)",
+            description = "Hẹn lịch xuất bản chương. Chapter phải đã APPROVED. publishAt phải là thời điểm trong tương lai.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public ChapterResponse schedulePublish(
+            @PathVariable Long id,
+            @Valid @RequestBody ScheduleChapterRequest request) {
+        return chapterService.schedulePublish(id, request);
     }
 
     @PostMapping("/{id}/purchase")
