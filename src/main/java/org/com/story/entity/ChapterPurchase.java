@@ -30,6 +30,12 @@ public class ChapterPurchase {
     /** Giá lúc mua (snapshot) */
     private Integer pricePaid;
 
+    /** Số coin tác giả thực nhận sau khi trừ hoa hồng hệ thống */
+    private Long authorShare;
+
+    /** Số coin hệ thống thu (hoa hồng). commissionCoin + authorShare = pricePaid */
+    private Long commissionCoin;
+
     @CreationTimestamp
     private LocalDateTime purchasedAt;
 }

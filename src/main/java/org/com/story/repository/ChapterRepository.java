@@ -16,6 +16,8 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
 
     List<Chapter> findByStatus(String status);
 
+    long countByStatus(String status);
+
     @Query("SELECT c FROM Chapter c WHERE c.story.id = :storyId AND c.status = 'PUBLISHED' ORDER BY c.chapterOrder ASC")
     List<Chapter> findPublishedByStoryId(@Param("storyId") Long storyId);
 

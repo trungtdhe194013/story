@@ -15,7 +15,8 @@ public class WithdrawRequestResponse {
     private Long id;
     private Long userId;
     private String userName;
-    private Long amount;
+    private Long amount;          // số coin muốn rút
+    private Long vndAmount;       // số tiền VND admin cần chuyển (amount * tỷ giá)
     private String status;        // PENDING | APPROVED | REJECTED
 
     // Thông tin ngân hàng

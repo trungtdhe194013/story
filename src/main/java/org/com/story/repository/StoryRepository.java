@@ -16,6 +16,8 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
     /** Dùng cho admin/reviewer — bao gồm cả soft-deleted nếu cần */
     List<Story> findByStatus(String status);
 
+    long countByStatus(String status);
+
     /** Reviewer queue: chỉ lấy PENDING và chưa bị soft-delete */
     @Query("SELECT s FROM Story s WHERE s.status = 'PENDING' AND s.isDeleted = false ORDER BY s.createdAt ASC")
     List<Story> findPendingForReview();

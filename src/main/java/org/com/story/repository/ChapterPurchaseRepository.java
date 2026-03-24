@@ -18,6 +18,14 @@ public interface ChapterPurchaseRepository extends JpaRepository<ChapterPurchase
     long countByUserId(Long userId);
     long countByChapterId(Long chapterId);
 
+    /** Tổng coin đã tiêu qua mua chương */
+    @Query("SELECT COALESCE(SUM(cp.pricePaid), 0) FROM ChapterPurchase cp")
+    Long sumTotalCoinSpend();
+
+    /** Tổng coin hoa hồng hệ thống đã thu */
+    @Query("SELECT COALESCE(SUM(cp.commissionCoin), 0) FROM ChapterPurchase cp WHERE cp.commissionCoin IS NOT NULL")
+    Long sumTotalSystemCommission();
+
     /**
      * Lấy danh sách người dùng KHÁC NHAU đã mua bất kỳ chương nào của một story.
      * Dùng để gửi thông báo khi story bị ẩn/gỡ bỏ.

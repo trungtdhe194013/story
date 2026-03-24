@@ -26,8 +26,15 @@ public class WithdrawRequest {
     @ManyToOne
     private User user;
 
-    private Long amount;
+    private Long amount;    // số coin muốn rút
     private String status; // PENDING, APPROVED, REJECTED
+
+    /**
+     * Số tiền VND admin cần chuyển thực tế.
+     * Tính khi tạo request: vndAmount = amount * coinToVndRate
+     * Null nếu là yêu cầu cũ (trước khi có field này).
+     */
+    private Long vndAmount;
 
     private String bankName;
     private String bankAccount;

@@ -16,6 +16,8 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     // Lọc theo trạng thái (Dùng Pageable để phân trang nếu danh sách quá dài)
     List<Report> findByStatus(String status);
 
+    long countByStatus(String status);
+
     // Lấy lịch sử báo cáo của một người dùng
     List<Report> findByReporterIdOrderByCreatedAtDesc(Long reporterId);
 

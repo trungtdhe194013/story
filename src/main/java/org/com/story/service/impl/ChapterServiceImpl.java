@@ -11,6 +11,7 @@ import org.com.story.exception.NotFoundException;
 import org.com.story.exception.UnauthorizedException;
 import org.com.story.repository.*;
 import org.com.story.service.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,15 +31,15 @@ public class ChapterServiceImpl implements ChapterService {
     private final WalletRepository walletRepository;
     private final ChapterPurchaseRepository chapterPurchaseRepository;
     private final UserService userService;
-    @Lazy
-    private final CommentService commentService;
-    @Lazy
-    private final NotificationService notificationService;
-    @Lazy
-    private final ReadingHistoryService readingHistoryService;
+    @Lazy private final CommentService commentService;
+    @Lazy private final NotificationService notificationService;
+    @Lazy private final ReadingHistoryService readingHistoryService;
     private final WalletService walletService;
-    @Lazy
-    private final MissionService missionService;
+    @Lazy private final MissionService missionService;
+
+    /** Tỉ lệ hoa hồng hệ thống thu — default 20% */
+    @Value("${app.commission.rate:0.20}")
+    private double commissionRate;
 
     @Override
     public ChapterResponse createChapter(Long storyId, ChapterRequest request) {
@@ -255,53 +256,64 @@ public class ChapterServiceImpl implements ChapterService {
         Wallet wallet = walletRepository.findByUserId(currentUser.getId())
                 .orElseThrow(() -> new NotFoundException("Wallet not found"));
 
-        if (wallet.getBalance() < chapter.getCoinPrice()) {
-            throw new BadRequestException("Insufficient balance. You need " + chapter.getCoinPrice() + " coins");
+        long total = chapter.getCoinPrice();
+
+        if (wallet.getBalance() < total) {
+            throw new BadRequestException("Insufficient balance. You need " + total + " coins");
         }
 
-        // Trừ tiền người mua
-        wallet.setBalance(wallet.getBalance() - chapter.getCoinPrice());
+        // ── Tính chia hoa hồng ───────────────────────────────────────────────────
+        long commission  = Math.round(total * commissionRate);  // 20%
+        long authorShare = total - commission;                   // 80%
+
+        // ── Trừ coin người mua ────────────────────────────────────────────────────
+        wallet.setBalance(wallet.getBalance() - total);
         walletRepository.save(wallet);
 
-        // Lưu ChapterPurchase
+        // ── Lưu ChapterPurchase kèm thông tin hoa hồng ───────────────────────────
         ChapterPurchase purchase = ChapterPurchase.builder()
                 .user(currentUser)
                 .chapter(chapter)
-                .pricePaid(chapter.getCoinPrice())
+                .pricePaid((int) total)
+                .authorShare(authorShare)
+                .commissionCoin(commission)
                 .build();
         chapterPurchaseRepository.save(purchase);
 
-        // Cộng tiền cho tác giả
+        // ── Cộng phần tác giả vào ví ─────────────────────────────────────────────
         User author = chapter.getStory().getAuthor();
         Wallet authorWallet = walletRepository.findByUserId(author.getId())
                 .orElseGet(() -> {
-                    Wallet newWallet = new Wallet();
-                    newWallet.setUser(author);
-                    newWallet.setBalance(0L);
-                    return walletRepository.save(newWallet);
+                    Wallet w = new Wallet();
+                    w.setUser(author);
+                    w.setBalance(0L);
+                    return walletRepository.save(w);
                 });
-        authorWallet.setBalance(authorWallet.getBalance() + chapter.getCoinPrice());
+        authorWallet.setBalance(authorWallet.getBalance() + authorShare);
         walletRepository.save(authorWallet);
 
-        // Update totalEarnedCoin
-        author.setTotalEarnedCoin((author.getTotalEarnedCoin() != null ? author.getTotalEarnedCoin() : 0L) + chapter.getCoinPrice());
+        // ── Cập nhật tổng coin tác giả đã kiếm (80%) ─────────────────────────────
+        author.setTotalEarnedCoin(
+                (author.getTotalEarnedCoin() != null ? author.getTotalEarnedCoin() : 0L) + authorShare);
 
-        // Ghi giao dịch
-        walletService.createTransaction(currentUser.getId(), (long) -chapter.getCoinPrice(), "BUY", chapter.getId());
-        walletService.createTransaction(author.getId(), (long) chapter.getCoinPrice(), "BUY", chapter.getId());
+        // ── Ghi 2 giao dịch: Reader trả + Author nhận ────────────────────────────
+        walletService.createTransaction(currentUser.getId(), -total,       "BUY",  chapter.getId());
+        walletService.createTransaction(author.getId(),      authorShare,  "SELL", chapter.getId());
+        // Hoa hồng hệ thống được track qua ChapterPurchase.commissionCoin
+        // (không cần system wallet — truy vấn qua SUM(commissionCoin) trong Dashboard)
 
-        // Track mission BUY_CHAPTER
+        // ── Track mission ─────────────────────────────────────────────────────────
         try { missionService.trackMissionAction("BUY_CHAPTER"); } catch (Exception ignored) {}
 
-        // Gửi thông báo cho tác giả
+        // ── Thông báo cho tác giả ─────────────────────────────────────────────────
         try {
             notificationService.sendNotification(
                     author,
                     "NEW_PURCHASE",
                     "Có người mua chương truyện của bạn!",
-                    "Người dùng " + currentUser.getFullName() + " đã mua chương '" + chapter.getTitle() + "' thuộc truyện '" + chapter.getStory().getTitle() + "'. Bạn nhận được " + chapter.getCoinPrice() + " xu.",
-                    chapter.getId(),
-                    "CHAPTER"
+                    String.format("'%s' đã mua chương '%s' — Bạn nhận được %d xu (sau hoa hồng 20%%).",
+                            currentUser.getFullName(), chapter.getTitle(), authorShare),
+                    chapter.getId(), "CHAPTER"
             );
         } catch (Exception ignored) {}
 

@@ -13,6 +13,7 @@ import org.com.story.repository.WithdrawRequestRepository;
 import org.com.story.service.UserService;
 import org.com.story.service.WalletService;
 import org.com.story.service.WithdrawRequestService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,10 @@ public class WithdrawRequestServiceImpl implements WithdrawRequestService {
     private final WalletRepository walletRepository;
     private final UserService userService;
     private final WalletService walletService;
+
+    /** Tỷ giá 1 coin = ? VND. Mặc định 1:1 */
+    @Value("${app.coin.to-vnd-rate:1}")
+    private long coinToVndRate;
 
     // ─────────────────────────────────────────────
     // Tạo yêu cầu rút tiền — FREEZE coin ngay lập tức
@@ -61,6 +66,7 @@ public class WithdrawRequestServiceImpl implements WithdrawRequestService {
         WithdrawRequest wr = new WithdrawRequest();
         wr.setUser(currentUser);
         wr.setAmount(request.getAmount());
+        wr.setVndAmount(request.getAmount() * coinToVndRate); // tính VND ngay lúc tạo
         wr.setBankName(request.getBankName());
         wr.setBankAccount(request.getBankAccount());
         wr.setBankOwner(request.getBankOwner());
@@ -166,6 +172,7 @@ public class WithdrawRequestServiceImpl implements WithdrawRequestService {
                 .userId(wr.getUser().getId())
                 .userName(wr.getUser().getFullName())
                 .amount(wr.getAmount())
+                .vndAmount(wr.getVndAmount() != null ? wr.getVndAmount() : wr.getAmount() * coinToVndRate)
                 .status(wr.getStatus())
                 .bankName(wr.getBankName())
                 .bankAccount(wr.getBankAccount())

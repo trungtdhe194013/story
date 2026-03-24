@@ -30,6 +30,7 @@ import org.com.story.exception.BadRequestException;
 import org.com.story.exception.NotFoundException;
 import org.com.story.repository.AdminReviewRepository;
 import org.com.story.repository.ChapterPurchaseRepository;
+import org.com.story.repository.PaymentOrderRepository;
 import org.com.story.repository.RoleRepository;
 import org.com.story.repository.StoryRepository;
 import org.com.story.repository.UserRepository;
@@ -43,6 +44,7 @@ import org.com.story.repository.WithdrawRequestRepository;
 import org.com.story.service.AdminService;
 import org.com.story.service.NotificationService;
 import org.com.story.service.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -80,6 +82,10 @@ public class AdminServiceImpl implements AdminService {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final ChapterPurchaseRepository chapterPurchaseRepository;
+    private final PaymentOrderRepository paymentOrderRepository;
+
+    @Value("${app.commission.rate:0.20}")
+    private double commissionRate;
 
     // ─── In-memory stores ────────────────────────────────────────────────────────
     /** alertId → alert state (acknowledged info) */
@@ -242,15 +248,42 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional(readOnly = true)
     public DashboardStatsResponse getDashboardStats() {
+        // ── Content counts ─────────────────────────────────────────────────────────
+        long totalUsers    = userRepository.count();
+        long totalStories  = storyRepository.count();
+        long totalChapters = chapterRepository.count();
+        long totalCats     = categoryRepository.count();
+        long totalComments = commentRepository.count();
+
+        // ── Pending queues ─────────────────────────────────────────────────────────
+        long pendingStories   = storyRepository.countByStatus("PENDING");
+        long pendingChapters  = chapterRepository.countByStatus("PENDING");
+        long pendingReports   = reportRepository.countByStatus("PENDING");
+        long pendingWithdraws = withdrawRequestRepository.countByStatus("PENDING");
+
+        // ── Real revenue from DB ───────────────────────────────────────────────────
+        long totalRevenueVnd    = paymentOrderRepository.sumRevenueVnd();
+        long totalPaidOrders    = paymentOrderRepository.countByStatus("PAID");
+        long totalCoinSpend     = chapterPurchaseRepository.sumTotalCoinSpend();
+        long systemEarningCoin  = chapterPurchaseRepository.sumTotalSystemCommission();
+        long totalPurchases     = chapterPurchaseRepository.count();
+
         return DashboardStatsResponse.builder()
-                .totalUsers(userRepository.count())
-                .totalStories(storyRepository.count())
-                .totalChapters(chapterRepository.count())
-                .pendingStories(storyRepository.findByStatus("PENDING").size())
-                .pendingReports(reportRepository.findByStatus("PENDING").size())
-                .pendingWithdrawRequests(withdrawRequestRepository.findByStatus("PENDING").size())
-                .totalCategories(categoryRepository.count())
-                .totalComments(commentRepository.count())
+                .totalUsers(totalUsers)
+                .totalStories(totalStories)
+                .totalChapters(totalChapters)
+                .totalCategories(totalCats)
+                .totalComments(totalComments)
+                .pendingStories(pendingStories)
+                .pendingChapters(pendingChapters)
+                .pendingReports(pendingReports)
+                .pendingWithdrawRequests(pendingWithdraws)
+                .totalRevenueVnd(totalRevenueVnd)
+                .totalPaidOrders(totalPaidOrders)
+                .totalCoinSpend(totalCoinSpend)
+                .systemEarningCoin(systemEarningCoin)
+                .totalChapterPurchases(totalPurchases)
+                .commissionRate(commissionRate)
                 .build();
     }
 
