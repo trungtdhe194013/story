@@ -29,6 +29,7 @@ import org.com.story.entity.WalletTransaction;
 import org.com.story.exception.BadRequestException;
 import org.com.story.exception.NotFoundException;
 import org.com.story.repository.AdminReviewRepository;
+import org.com.story.repository.ChapterPurchaseRepository;
 import org.com.story.repository.RoleRepository;
 import org.com.story.repository.StoryRepository;
 import org.com.story.repository.UserRepository;
@@ -78,6 +79,7 @@ public class AdminServiceImpl implements AdminService {
     private final NotificationService notificationService;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
+    private final ChapterPurchaseRepository chapterPurchaseRepository;
 
     // ─── In-memory stores ────────────────────────────────────────────────────────
     /** alertId → alert state (acknowledged info) */
@@ -707,16 +709,59 @@ public class AdminServiceImpl implements AdminService {
     }
 
     private UserResponse mapUserToResponse(User user) {
+        // Wallet balance
+        Long walletBalance = 0L;
+        Long lockedBalance = 0L;
+        try {
+            var walletOpt = walletRepository.findByUserId(user.getId());
+            if (walletOpt.isPresent()) {
+                walletBalance = walletOpt.get().getBalance();
+                lockedBalance = walletOpt.get().getLockedBalance();
+            }
+        } catch (Exception ignored) {}
+
+        // Stats
+        int followedCount = 0;
+        try {
+            followedCount = user.getFollowedStories() != null ? user.getFollowedStories().size() : 0;
+        } catch (Exception ignored) {}
+
+        long purchasedCount = 0;
+        try {
+            purchasedCount = chapterPurchaseRepository.countByUserId(user.getId());
+        } catch (Exception ignored) {}
+
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .username(user.getUsername())
                 .fullName(user.getFullName())
-                .roles(user.getRoles().stream()
-                        .map(Role::getName)
-                        .collect(Collectors.toSet()))
-                .provider(user.getProvider().name())
+                .roles(user.getRoles() != null
+                        ? user.getRoles().stream().map(Role::getName).collect(Collectors.toSet())
+                        : java.util.Set.of())
+                .provider(user.getProvider() != null ? user.getProvider().name() : null)
                 .enabled(user.getEnabled())
+                // Profile
+                .avatarUrl(user.getAvatarUrl())
+                .bio(user.getBio())
+                .phone(user.getPhone())
+                .dateOfBirth(user.getDateOfBirth())
+                .gender(user.getGender())
+                .location(user.getLocation())
+                // Wallet
+                .walletBalance(walletBalance)
+                .lockedBalance(lockedBalance)
+                // Ban
                 .banUntil(user.getBanUntil())
+                .banReason(user.getBanReason())
+                .commentBanUntil(user.getCommentBanUntil())
+                // Stats
+                .totalFollowedStories(followedCount)
+                .totalPurchasedChapters((int) purchasedCount)
+                .totalEarnedCoin(user.getTotalEarnedCoin() != null ? user.getTotalEarnedCoin() : 0L)
+                // Timestamps
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .build();
     }
 }

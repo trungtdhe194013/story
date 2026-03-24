@@ -16,6 +16,7 @@ import java.util.Set;
 public class UserResponse {
     private Long id;
     private String email;
+    private String username;
     private String fullName;
     private Set<String> roles;
     private String provider;
@@ -31,13 +32,17 @@ public class UserResponse {
 
     // Wallet info
     private Long walletBalance;
+    private Long lockedBalance;
 
     // Ban info
-    private LocalDateTime banUntil; // null = không bị ban
+    private LocalDateTime banUntil;    // null = không bị ban
+    private String banReason;
+    private LocalDateTime commentBanUntil;
 
     // Stats
     private Integer totalFollowedStories;
     private Integer totalPurchasedChapters;
+    private Long totalEarnedCoin;
 
     // Timestamps
     private LocalDateTime createdAt;
