@@ -13,5 +13,8 @@ public interface NotificationService {
     void markAllAsRead();
     NotificationResponse markAsRead(Long id);
     void deleteNotification(Long id);
+
+    /** [6] Broadcast thông báo đến toàn bộ user hoặc theo role */
+    int sendBroadcast(String title, String message, String targetRole);
 }
 

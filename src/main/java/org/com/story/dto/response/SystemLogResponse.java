@@ -11,8 +11,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SystemLogResponse {
+    private String id;
     private LocalDateTime timestamp;
-    private String severity; // INFO, WARN, ERROR
+    private String severity; // INFO, WARN, ERROR, DEBUG
     private String component;
     private String message;
+    private String traceId;
 }

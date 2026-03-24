@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.com.story.dto.request.AdminCoinAdjustRequest;
+import org.com.story.dto.request.BroadcastNotificationRequest;
 import org.com.story.dto.request.MissionRequest;
 import org.com.story.dto.request.RejectWithdrawDto;
 import org.com.story.dto.request.ResolveReportRequest;
@@ -17,7 +19,10 @@ import org.com.story.dto.response.SystemStatsResponse;
 import org.com.story.dto.response.SystemLogResponse;
 import org.com.story.dto.response.SystemAlertResponse;
 import org.com.story.dto.response.CoinStatsDailyResponse;
+import org.com.story.dto.response.JobRunHistoryResponse;
 import org.com.story.service.*;
+import org.springframework.data.domain.Page;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +39,7 @@ public class AdminController {
     private final WithdrawRequestService withdrawRequestService;
     private final MissionService missionService;
     private final RoleChangeRequestService roleChangeRequestService;
+    private final NotificationService notificationService;
 
     // ============== DASHBOARD ==============
 
@@ -255,39 +261,117 @@ public class AdminController {
         return adminService.getSystemStats();
     }
 
+    // [1] Server Logs with filter + pagination
     @GetMapping("/system/logs")
-    @Operation(summary = "Get system logs", description = "Xem log hệ thống theo severity",
+    @Operation(summary = "Get system logs (paginated)", description = """
+            Xem log hệ thống. Query params:
+            - severity: INFO | WARN | ERROR | DEBUG (để trống = tất cả)
+            - component: tên component cần lọc (để trống = tất cả)
+            - page: trang (bắt đầu từ 0)
+            - size: số dòng mỗi trang (default 20)
+            """,
             security = @SecurityRequirement(name = "bearerAuth"))
-    public List<SystemLogResponse> getSystemLogs() {
-        return adminService.getSystemLogs();
+    public Page<SystemLogResponse> getSystemLogs(
+            @RequestParam(required = false) String severity,
+            @RequestParam(required = false) String component,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return adminService.getSystemLogs(severity, component, page, size);
     }
 
+    // [2] Alerts with severity
     @GetMapping("/system/alerts")
-    @Operation(summary = "Get system alerts", description = "Xem các cảnh báo hệ thống thời gian thực",
+    @Operation(summary = "Get system alerts", description = "Xem cảnh báo hệ thống — có severity và trạng thái đã xử lý hay chưa",
             security = @SecurityRequirement(name = "bearerAuth"))
     public List<SystemAlertResponse> getSystemAlerts() {
         return adminService.getSystemAlerts();
     }
 
-    @PostMapping("/jobs/stats-aggregator")
-    @Operation(summary = "Run StatsAggregator job", description = "Kích hoạt job tổng hợp số liệu",
+    // [2b] Acknowledge an alert
+    @PostMapping("/system/alerts/{alertId}/acknowledge")
+    @Operation(summary = "Acknowledge alert", description = "Đánh dấu alert đã được xem/xử lý",
             security = @SecurityRequirement(name = "bearerAuth"))
-    public void runStatsJob() {
-        adminService.runStatsAggregator();
+    public SystemAlertResponse acknowledgeAlert(@PathVariable String alertId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String adminEmail = auth != null ? auth.getName() : "admin";
+        return adminService.acknowledgeAlert(alertId, adminEmail);
     }
 
+    // [3] Job run history
+    @GetMapping("/jobs/history")
+    @Operation(summary = "Get job run history", description = "Xem lịch sử các lần chạy job (stats-aggregator, monthly-settlement)",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public List<JobRunHistoryResponse> getJobHistory() {
+        return adminService.getJobRunHistory();
+    }
+
+    @PostMapping("/jobs/stats-aggregator")
+    @Operation(summary = "Run StatsAggregator job", description = "Kích hoạt job tổng hợp số liệu — ghi lại lịch sử",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public void runStatsJob() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String triggeredBy = auth != null ? auth.getName() : "ADMIN_MANUAL";
+        adminService.runStatsAggregator(triggeredBy);
+    }
+
+    @PostMapping("/jobs/monthly-settlement")
+    @Operation(summary = "Run MonthlySettlement job", description = "Kích hoạt job tất toán tháng — ghi lại lịch sử",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public void runSettlementJob() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String triggeredBy = auth != null ? auth.getName() : "ADMIN_MANUAL";
+        adminService.runMonthlySettlement(triggeredBy);
+    }
+
+    // [4] Coin economy stats (extended)
     @GetMapping("/coins/stats-daily")
-    @Operation(summary = "Get daily coin stats", description = "Xem tổng nạp/tiêu coin trong ngày",
+    @Operation(summary = "Get daily coin economy stats",
+            description = "Xem tổng nạp/tiêu/rút coin hôm nay + pending withdraw + tổng lưu hành",
             security = @SecurityRequirement(name = "bearerAuth"))
     public CoinStatsDailyResponse getCoinStatsDaily() {
         return adminService.getCoinStatsDaily();
     }
 
-    @PostMapping("/jobs/monthly-settlement")
-    @Operation(summary = "Run MonthlySettlement job", description = "Kích hoạt job tất toán tháng",
+    // [5] Manual coin adjustment
+    @PostMapping("/users/{userId}/adjust-coins")
+    @Operation(summary = "Adjust user coins (manual)",
+            description = """
+            Điều chỉnh coin thủ công cho user.
+            - amount > 0: cộng coin vào ví
+            - amount < 0: trừ coin khỏi ví
+            - reason: bắt buộc, lý do (hiển thị trong lịch sử giao dịch)
+            """,
             security = @SecurityRequirement(name = "bearerAuth"))
-    public void runSettlementJob() {
-        adminService.runMonthlySettlement();
+    public WalletResponse adjustUserCoins(
+            @PathVariable Long userId,
+            @Valid @RequestBody AdminCoinAdjustRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String adminEmail = auth != null ? auth.getName() : "admin";
+        return adminService.adjustUserCoins(userId, request, adminEmail);
+    }
+
+    // [6] Broadcast notification
+    @PostMapping("/notifications/broadcast")
+    @Operation(summary = "Broadcast notification",
+            description = """
+            Gửi thông báo hàng loạt cho users.
+            - targetRole: ALL | READER | AUTHOR | EDITOR | REVIEWER (mặc định ALL)
+            - title + message: nội dung thông báo
+            Trả về số user đã nhận được thông báo.
+            """,
+            security = @SecurityRequirement(name = "bearerAuth"))
+    public java.util.Map<String, Object> broadcastNotification(
+            @Valid @RequestBody BroadcastNotificationRequest request) {
+        int count = notificationService.sendBroadcast(
+                request.getTitle(),
+                request.getMessage(),
+                request.getTargetRole()
+        );
+        return java.util.Map.of(
+                "sentTo", count,
+                "targetRole", request.getTargetRole() != null ? request.getTargetRole() : "ALL",
+                "title", request.getTitle()
+        );
     }
 }
 

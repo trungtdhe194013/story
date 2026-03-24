@@ -103,6 +103,33 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.delete(notification);
     }
 
+    @Override
+    @Async
+    @Transactional
+    public int sendBroadcast(String title, String message, String targetRole) {
+        List<User> targets;
+        if (targetRole == null || targetRole.isBlank() || "ALL".equalsIgnoreCase(targetRole)) {
+            targets = userRepository.findAll();
+        } else {
+            targets = userRepository.findAllByRoleName(targetRole.toUpperCase());
+        }
+
+        if (targets.isEmpty()) return 0;
+
+        List<Notification> notifications = targets.stream()
+                .map(user -> Notification.builder()
+                        .user(user)
+                        .type("SYSTEM")
+                        .title(title)
+                        .message(message)
+                        .isRead(false)
+                        .build())
+                .collect(Collectors.toList());
+
+        notificationRepository.saveAll(notifications);
+        return notifications.size();
+    }
+
     private NotificationResponse mapToResponse(Notification n) {
         return NotificationResponse.builder()
                 .id(n.getId())

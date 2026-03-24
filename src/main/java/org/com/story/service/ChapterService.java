@@ -13,7 +13,7 @@ public interface ChapterService {
     ChapterResponse updateChapter(Long id, ChapterRequest request);
     void deleteChapter(Long id);
 
-    /** Author nộp chapter lên Reviewer (DRAFT/EDITED → PENDING_REVIEW) */
+    /** Author nộp chapter lên Reviewer (DRAFT/EDITED/REJECTED → PENDING) */
     ChapterResponse submitForReview(Long id);
 
     /** Author tự publish ngay sau khi Reviewer đã APPROVE (APPROVED → PUBLISHED) */

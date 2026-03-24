@@ -60,7 +60,7 @@ public class ChapterController {
 
     /**
      * Author nộp chapter lên Reviewer duyệt.
-     * Status: DRAFT hoặc EDITED → PENDING_REVIEW
+     * Status: DRAFT hoặc EDITED hoặc REJECTED → PENDING
      */
     @PostMapping("/{id}/submit")
     @Operation(summary = "Submit chapter for review (AUTHOR only)",

@@ -35,7 +35,7 @@ public class ReviewerController {
 
     @GetMapping("/stories/{id}/detail")
     @Operation(summary = "Đọc chi tiết story (kèm toàn bộ chapter) để duyệt",
-            description = "Reviewer đọc thông tin story + danh sách TẤT CẢ chapter (kể cả PENDING_REVIEW) trước khi quyết định.",
+            description = "Reviewer đọc thông tin story + danh sách TẤT CẢ chapter (kể cả PENDING) trước khi quyết định.",
             security = @SecurityRequirement(name = "bearerAuth"))
     public StoryDetailResponse getStoryDetailForReview(@PathVariable Long id) {
         return adminService.getStoryDetailForReview(id);
@@ -53,7 +53,7 @@ public class ReviewerController {
     // ============== CHAPTER ==============
 
     @GetMapping("/chapters/pending")
-    @Operation(summary = "Danh sách chapter chờ duyệt (PENDING_REVIEW)",
+    @Operation(summary = "Danh sách chapter chờ duyệt (PENDING)",
             security = @SecurityRequirement(name = "bearerAuth"))
     public List<ChapterResponse> getPendingChapters() {
         return adminService.getPendingChaptersForReview();

@@ -11,7 +11,15 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SystemAlertResponse {
+    private String id;
     private LocalDateTime timestamp;
-    private String level; // CRITICAL, HIGH, MEDIUM
+    /** CRITICAL, HIGH, MEDIUM, LOW */
+    private String level;
+    /** CRITICAL, HIGH, MEDIUM, LOW — alias kept for compat */
+    private String severity;
     private String message;
+    private String source;
+    private Boolean isAcknowledged;
+    private LocalDateTime acknowledgedAt;
+    private String acknowledgedBy;
 }

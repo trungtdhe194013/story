@@ -1,18 +1,22 @@
 package org.com.story.service;
 
+import org.com.story.dto.request.AdminCoinAdjustRequest;
 import org.com.story.dto.request.ReviewChapterRequest;
 import org.com.story.dto.request.ReviewStoryRequest;
 import org.com.story.dto.request.UpdateUserRoleRequest;
 import org.com.story.dto.response.ChapterResponse;
+import org.com.story.dto.response.CoinStatsDailyResponse;
 import org.com.story.dto.response.DashboardStatsResponse;
+import org.com.story.dto.response.JobRunHistoryResponse;
 import org.com.story.dto.response.ReviewHistoryResponse;
 import org.com.story.dto.response.StoryDetailResponse;
 import org.com.story.dto.response.StoryResponse;
-import org.com.story.dto.response.UserResponse;
-import org.com.story.dto.response.SystemStatsResponse;
-import org.com.story.dto.response.SystemLogResponse;
 import org.com.story.dto.response.SystemAlertResponse;
-import org.com.story.dto.response.CoinStatsDailyResponse;
+import org.com.story.dto.response.SystemLogResponse;
+import org.com.story.dto.response.SystemStatsResponse;
+import org.com.story.dto.response.UserResponse;
+import org.com.story.dto.response.WalletResponse;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -61,13 +65,27 @@ public interface AdminService {
 
     SystemStatsResponse getSystemStats();
 
-    List<SystemLogResponse> getSystemLogs();
+    /** [1] Server logs với filter + pagination */
+    Page<SystemLogResponse> getSystemLogs(String severity, String component, int page, int size);
 
+    /** [2] Alerts với severity field */
     List<SystemAlertResponse> getSystemAlerts();
 
-    void runStatsAggregator();
+    /** [2b] Đánh dấu alert đã xử lý */
+    SystemAlertResponse acknowledgeAlert(String alertId, String adminEmail);
 
+    /** [3] Job run history */
+    List<JobRunHistoryResponse> getJobRunHistory();
+
+    void runStatsAggregator(String triggeredBy);
+
+    /** [4] Coin economy stats mở rộng */
     CoinStatsDailyResponse getCoinStatsDaily();
 
-    void runMonthlySettlement();
+    void runMonthlySettlement(String triggeredBy);
+
+    /** [5] Điều chỉnh coin thủ công */
+    WalletResponse adjustUserCoins(Long userId, AdminCoinAdjustRequest request, String adminEmail);
 }
+
+

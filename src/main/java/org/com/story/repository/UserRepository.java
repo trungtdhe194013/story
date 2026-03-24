@@ -26,4 +26,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /** Lấy danh sách follower của một story — để gửi notification */
     @Query("SELECT u FROM User u JOIN u.followedStories s WHERE s.id = :storyId")
     List<User> findFollowersByStoryId(@Param("storyId") Long storyId);
+
+    /** Lấy tất cả user có role cụ thể — dùng cho broadcast notification */
+    @Query("SELECT DISTINCT u FROM User u JOIN u.roles r WHERE r.name = :roleName")
+    List<User> findAllByRoleName(@Param("roleName") String roleName);
 }
+
+
