@@ -18,6 +18,12 @@ WORKDIR /app
 
 COPY --from=builder /app/target/story-0.0.1-SNAPSHOT.jar app.jar
 
+# Tạo thư mục uploads bên trong image
+RUN mkdir -p /app/uploads/avatars /app/uploads/covers /app/uploads/images
+
+# Khai báo volume để dữ liệu upload không mất khi restart container
+VOLUME /app/uploads
+
 EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
