@@ -73,7 +73,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/health",
-                                "/oauth2/**"
+                                "/oauth2/**",
+                                "/test/**"
                         ).permitAll()
 
                         // Payment: danh sách gói (public) + IPN webhook (PayOS server gọi)
