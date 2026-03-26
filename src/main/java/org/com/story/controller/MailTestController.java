@@ -19,9 +19,9 @@ public class MailTestController {
     @GetMapping
     public String testMail() {
         mailService.sendTextMail(
-                "quangtn7787@gmail.com",
-                "Test mail",
-                "Mail sent successfully"
+                "huyenthoaiphu@gmail.com",
+                "Test mail từ Story Platform",
+                "Mail gửi thành công từ huyenthoaiphu@gmail.com ✅"
         );
         return "OK";
     }

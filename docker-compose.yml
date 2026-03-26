@@ -39,8 +39,8 @@ services:
       # PayOS webhook
       PAYOS_WEBHOOK_URL: ${PAYOS_WEBHOOK_URL:-https://danille-laziest-yetta.ngrok-free.dev/api/payment/ipn}
       # Mail
-      SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
-      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_USERNAME: ${MAIL_USERNAME:-huyenthoaiphu@gmail.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-qhpzocojyqeyxhsl}
       # OAuth2 Google
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-your-google-client-id}
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-your-google-client-secret}

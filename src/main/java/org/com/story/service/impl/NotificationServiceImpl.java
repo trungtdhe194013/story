@@ -104,7 +104,6 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    @Async
     @Transactional
     public int sendBroadcast(String title, String message, String targetRole) {
         List<User> targets;
