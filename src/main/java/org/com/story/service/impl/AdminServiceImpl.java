@@ -41,9 +41,11 @@ import org.com.story.repository.ReportRepository;
 import org.com.story.repository.WalletRepository;
 import org.com.story.repository.WalletTransactionRepository;
 import org.com.story.repository.WithdrawRequestRepository;
+import org.com.story.repository.ReadingHistoryRepository;
 import org.com.story.service.AdminService;
 import org.com.story.service.NotificationService;
 import org.com.story.service.UserService;
+import org.com.story.config.AppLogStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -83,6 +85,8 @@ public class AdminServiceImpl implements AdminService {
     private final WalletTransactionRepository walletTransactionRepository;
     private final ChapterPurchaseRepository chapterPurchaseRepository;
     private final PaymentOrderRepository paymentOrderRepository;
+    private final AppLogStore appLogStore;
+    private final ReadingHistoryRepository readingHistoryRepository;
 
     @Value("${app.commission.rate:0.20}")
     private double commissionRate;
@@ -525,12 +529,45 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public SystemStatsResponse getSystemStats() {
+        LocalDateTime now      = LocalDateTime.now();
+        LocalDateTime since7d  = now.minusDays(7);
+        LocalDateTime since30d = now.minusDays(30);
+        LocalDateTime todayStart = now.toLocalDate().atStartOfDay();
+
+        // ── Revenue ─────────────────────────────────────────────────────────────
+        long revenue7d      = paymentOrderRepository.sumRevenueVndSince(since7d);
+        long revenueAllTime = paymentOrderRepository.sumRevenueVnd();
+
+        // ── Payment error rate (last 7 days) ────────────────────────────────────
+        long paidOrders7d      = paymentOrderRepository.countByStatusSince("PAID",      since7d);
+        long cancelledOrders7d = paymentOrderRepository.countByStatusSince("CANCELLED", since7d);
+        long totalOrders7d     = paidOrders7d + cancelledOrders7d;
+        double paymentErrorRate = totalOrders7d > 0
+                ? (double) cancelledOrders7d / totalOrders7d
+                : 0.0;
+
+        // ── DAU / MAU (based on ReadingHistory.lastReadAt) ──────────────────────
+        long dau = readingHistoryRepository.countDistinctActiveUsersSince(todayStart);
+        long mau = readingHistoryRepository.countDistinctActiveUsersSince(since30d);
+        double dauMauRatio = mau > 0 ? (double) dau / mau : 0.0;
+
+        // ── Users ────────────────────────────────────────────────────────────────
         long totalUsers = userRepository.count();
-        double dauMau = Math.min(0.45, 0.1 + (totalUsers % 100) / 300.0);
+        // newUsers7d: users whose id were created in last 7 days
+        // (User entity createdAt via @CreationTimestamp)
+        long newUsers7d = userRepository.countByCreatedAtAfter(since7d);
+
         return SystemStatsResponse.builder()
-                .dauMauRatio(dauMau)
-                .revenue7d(totalUsers * 1250L)
-                .paymentErrorRate(0.02)
+                .dauMauRatio(dauMauRatio)
+                .dau(dau)
+                .mau(mau)
+                .revenue7d(revenue7d)
+                .revenueAllTime(revenueAllTime)
+                .paymentErrorRate(paymentErrorRate)
+                .paidOrders7d(paidOrders7d)
+                .cancelledOrders7d(cancelledOrders7d)
+                .totalUsers(totalUsers)
+                .newUsers7d(newUsers7d)
                 .build();
     }
 
@@ -538,17 +575,19 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public Page<SystemLogResponse> getSystemLogs(String severity, String component, int page, int size) {
-        // Simulate log entries (in production, read from log file / ELK / DB)
-        List<SystemLogResponse> allLogs = buildSimulatedLogs();
+        List<SystemLogResponse> allLogs = appLogStore.getAll(); // real logs from AppLogAppender
 
-        // Filter
+        // Filter by severity
         List<SystemLogResponse> filtered = allLogs.stream()
-                .filter(l -> severity == null || severity.isBlank() || l.getSeverity().equalsIgnoreCase(severity))
-                .filter(l -> component == null || component.isBlank() || l.getComponent().toLowerCase().contains(component.toLowerCase()))
+                .filter(l -> severity == null || severity.isBlank()
+                        || l.getSeverity().equalsIgnoreCase(severity))
+                // Filter by component (partial match, case-insensitive)
+                .filter(l -> component == null || component.isBlank()
+                        || l.getComponent().toLowerCase().contains(component.toLowerCase()))
                 .collect(Collectors.toList());
 
         // Manual pagination
-        int total = filtered.size();
+        int total     = filtered.size();
         int fromIndex = Math.min(page * size, total);
         int toIndex   = Math.min(fromIndex + size, total);
         List<SystemLogResponse> pageContent = filtered.subList(fromIndex, toIndex);
@@ -556,39 +595,174 @@ public class AdminServiceImpl implements AdminService {
         return new PageImpl<>(pageContent, PageRequest.of(page, size), total);
     }
 
-    private List<SystemLogResponse> buildSimulatedLogs() {
-        return List.of(
-            SystemLogResponse.builder().id(UUID.randomUUID().toString()).timestamp(LocalDateTime.now().minusMinutes(1)).severity("INFO").component("AuthService").message("User login successful: reader01").traceId("trace-001").build(),
-            SystemLogResponse.builder().id(UUID.randomUUID().toString()).timestamp(LocalDateTime.now().minusMinutes(5)).severity("ERROR").component("PaymentGateway").message("PayOS webhook verification failed for order #12345").traceId("trace-002").build(),
-            SystemLogResponse.builder().id(UUID.randomUUID().toString()).timestamp(LocalDateTime.now().minusMinutes(10)).severity("WARN").component("StoryService").message("Slow query detected in findPendingForReview").traceId("trace-003").build(),
-            SystemLogResponse.builder().id(UUID.randomUUID().toString()).timestamp(LocalDateTime.now().minusMinutes(15)).severity("INFO").component("ChapterService").message("Chapter #88 published by scheduler").traceId("trace-004").build(),
-            SystemLogResponse.builder().id(UUID.randomUUID().toString()).timestamp(LocalDateTime.now().minusMinutes(30)).severity("ERROR").component("MailService").message("Failed to send OTP email to user@example.com").traceId("trace-005").build(),
-            SystemLogResponse.builder().id(UUID.randomUUID().toString()).timestamp(LocalDateTime.now().minusHours(1)).severity("INFO").component("StreakService").message("Daily streak reset completed for 120 users").traceId("trace-006").build(),
-            SystemLogResponse.builder().id(UUID.randomUUID().toString()).timestamp(LocalDateTime.now().minusHours(2)).severity("WARN").component("WalletService").message("Withdraw request #45 pending over 48h").traceId("trace-007").build(),
-            SystemLogResponse.builder().id(UUID.randomUUID().toString()).timestamp(LocalDateTime.now().minusHours(3)).severity("DEBUG").component("NotificationService").message("Sent 35 new-chapter notifications for story #12").traceId("trace-008").build(),
-            SystemLogResponse.builder().id(UUID.randomUUID().toString()).timestamp(LocalDateTime.now().minusHours(5)).severity("INFO").component("AdminService").message("StatsAggregator job triggered manually").traceId("trace-009").build(),
-            SystemLogResponse.builder().id(UUID.randomUUID().toString()).timestamp(LocalDateTime.now().minusHours(6)).severity("ERROR").component("S3UploadService").message("Image upload failed: connection timeout").traceId("trace-010").build()
-        );
-    }
-
     // ─── [2] Alerts with severity + acknowledge ───────────────────────────────
 
     @Override
     public List<SystemAlertResponse> getSystemAlerts() {
-        // Ensure default alerts exist in store
-        ensureDefaultAlerts();
-        return alertStore.values().stream()
-                .sorted((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()))
+        List<SystemAlertResponse> alerts = buildRealAlerts();
+        // Merge acknowledged state from in-memory store (persists until restart)
+        for (SystemAlertResponse alert : alerts) {
+            SystemAlertResponse stored = alertStore.get(alert.getId());
+            if (stored != null && Boolean.TRUE.equals(stored.getIsAcknowledged())) {
+                alert.setIsAcknowledged(true);
+                alert.setAcknowledgedAt(stored.getAcknowledgedAt());
+                alert.setAcknowledgedBy(stored.getAcknowledgedBy());
+            }
+        }
+        return alerts.stream()
+                .sorted((a, b) -> {
+                    // Sort by severity (CRITICAL > HIGH > MEDIUM > LOW) then by timestamp desc
+                    int sa = severityOrder(a.getSeverity()), sb = severityOrder(b.getSeverity());
+                    if (sa != sb) return Integer.compare(sa, sb);
+                    return b.getTimestamp().compareTo(a.getTimestamp());
+                })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Build real alerts from live DB data.
+     * Each alert has a DETERMINISTIC id so acknowledged state can be matched across calls.
+     */
+    private List<SystemAlertResponse> buildRealAlerts() {
+        List<SystemAlertResponse> alerts = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        // ── [1] Withdraw requests pending > 72h ──────────────────────────────
+        LocalDateTime cutoff72h = now.minusHours(72);
+        long pendingOver72h = withdrawRequestRepository.countPendingOlderThan(cutoff72h);
+        if (pendingOver72h > 0) {
+            alerts.add(SystemAlertResponse.builder()
+                    .id("alert-withdraw-72h")
+                    .timestamp(now)
+                    .level("LOW")
+                    .severity("LOW")
+                    .message(pendingOver72h + " yeu cau rut tien da PENDING qua 72 gio")
+                    .source("WalletService")
+                    .isAcknowledged(false)
+                    .build());
+        }
+
+        // ── [2] Payment error rate — last 5 minutes (CRITICAL threshold) ──────
+        LocalDateTime since5min = now.minusMinutes(5);
+        long total5  = paymentOrderRepository.countAllSince(since5min);
+        long cancelled5 = paymentOrderRepository.countByStatusSince("CANCELLED", since5min);
+        if (total5 > 0) {
+            double rate5 = (double) cancelled5 / total5 * 100;
+            if (rate5 >= 10.0) {
+                alerts.add(SystemAlertResponse.builder()
+                        .id("alert-payment-5min")
+                        .timestamp(now)
+                        .level("CRITICAL")
+                        .severity("CRITICAL")
+                        .message(String.format(
+                                "Ti le loi thanh toan %.1f%% trong 5 phut qua (%d/%d don bi huy)",
+                                rate5, cancelled5, total5))
+                        .source("PaymentGateway")
+                        .isAcknowledged(false)
+                        .build());
+            }
+        }
+
+        // ── [3] Payment error rate — last 10 minutes (HIGH threshold) ─────────
+        LocalDateTime since10min = now.minusMinutes(10);
+        long total10     = paymentOrderRepository.countAllSince(since10min);
+        long cancelled10 = paymentOrderRepository.countByStatusSince("CANCELLED", since10min);
+        if (total10 > 0) {
+            double rate10 = (double) cancelled10 / total10 * 100;
+            if (rate10 >= 5.0 && rate10 < 10.0) {
+                // Only show HIGH if CRITICAL is not already shown (avoid duplicate)
+                boolean criticalAlreadyShown = alerts.stream()
+                        .anyMatch(a -> "alert-payment-5min".equals(a.getId()));
+                if (!criticalAlreadyShown) {
+                    alerts.add(SystemAlertResponse.builder()
+                            .id("alert-payment-10min")
+                            .timestamp(now)
+                            .level("HIGH")
+                            .severity("HIGH")
+                            .message(String.format(
+                                    "Ti le loi thanh toan %.1f%% trong 10 phut qua (%d/%d don bi huy)",
+                                    rate10, cancelled10, total10))
+                            .source("PaymentGateway")
+                            .isAcknowledged(false)
+                            .build());
+                }
+            }
+        }
+
+        // ── [4] PENDING payments stale > 30 minutes ───────────────────────────
+        LocalDateTime since30min = now.minusMinutes(30);
+        long stalePending = paymentOrderRepository.countByStatusSince("PENDING", now.minusYears(1))
+                - paymentOrderRepository.countByStatusSince("PENDING", since30min);
+        // stalePending = PENDING orders created more than 30 min ago (never completed/cancelled)
+        if (stalePending > 0) {
+            alerts.add(SystemAlertResponse.builder()
+                    .id("alert-payment-stale")
+                    .timestamp(now)
+                    .level("MEDIUM")
+                    .severity("MEDIUM")
+                    .message(stalePending + " don thanh toan PENDING qua 30 phut (co the loi gateway)")
+                    .source("PaymentGateway")
+                    .isAcknowledged(false)
+                    .build());
+        }
+
+        // ── [5] Disk usage via Java File API ──────────────────────────────────
+        try {
+            java.io.File disk = new java.io.File("/");
+            long total = disk.getTotalSpace();
+            if (total > 0) {
+                long usable = disk.getUsableSpace();
+                double usedPct = (double)(total - usable) / total * 100;
+                if (usedPct >= 90.0) {
+                    alerts.add(SystemAlertResponse.builder()
+                            .id("alert-disk-critical")
+                            .timestamp(now)
+                            .level("CRITICAL")
+                            .severity("CRITICAL")
+                            .message(String.format("Disk usage %.1f%% - nguy hiem, can don ngay!", usedPct))
+                            .source("DiskMonitor")
+                            .isAcknowledged(false)
+                            .build());
+                } else if (usedPct >= 80.0) {
+                    alerts.add(SystemAlertResponse.builder()
+                            .id("alert-disk-high")
+                            .timestamp(now)
+                            .level("HIGH")
+                            .severity("HIGH")
+                            .message(String.format("Disk usage %.1f%% - sap day, can kiem tra upload files", usedPct))
+                            .source("DiskMonitor")
+                            .isAcknowledged(false)
+                            .build());
+                }
+                // Under 80%: no disk alert — system healthy
+            }
+        } catch (Exception ignored) {
+            // If disk check fails, skip silently
+        }
+
+        return alerts;
+    }
+
+    private int severityOrder(String severity) {
+        return switch (severity == null ? "" : severity.toUpperCase()) {
+            case "CRITICAL" -> 0;
+            case "HIGH"     -> 1;
+            case "MEDIUM"   -> 2;
+            case "LOW"      -> 3;
+            default         -> 4;
+        };
     }
 
     @Override
     public SystemAlertResponse acknowledgeAlert(String alertId, String adminEmail) {
-        ensureDefaultAlerts();
-        SystemAlertResponse alert = alertStore.get(alertId);
-        if (alert == null) {
-            throw new NotFoundException("Alert not found: " + alertId);
-        }
+        // Rebuild live alerts to get the current state
+        List<SystemAlertResponse> current = buildRealAlerts();
+        SystemAlertResponse alert = current.stream()
+                .filter(a -> alertId.equals(a.getId()))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Alert not found or no longer active: " + alertId));
+
+        // Persist acknowledged state in memory store
         alert.setIsAcknowledged(true);
         alert.setAcknowledgedAt(LocalDateTime.now());
         alert.setAcknowledgedBy(adminEmail);
@@ -596,28 +770,11 @@ public class AdminServiceImpl implements AdminService {
         return alert;
     }
 
-    private void ensureDefaultAlerts() {
-        if (alertStore.isEmpty()) {
-            addAlert("CRITICAL", "Payment error rate exceeded 10% in the last 5 minutes", "PaymentGateway");
-            addAlert("HIGH",     "Payment error rate exceeded 5% in the last 10 minutes", "PaymentGateway");
-            addAlert("MEDIUM",   "Database disk usage reaching 85%", "DatabaseMonitor");
-            addAlert("LOW",      "3 withdraw requests pending over 72h", "WalletService");
-        }
-    }
+    @Deprecated
+    private void ensureDefaultAlerts() { /* replaced by buildRealAlerts() */ }
 
-    private void addAlert(String level, String message, String source) {
-        String id = UUID.randomUUID().toString();
-        SystemAlertResponse alert = SystemAlertResponse.builder()
-                .id(id)
-                .timestamp(LocalDateTime.now().minusMinutes((long)(Math.random() * 60)))
-                .level(level)
-                .severity(level)
-                .message(message)
-                .source(source)
-                .isAcknowledged(false)
-                .build();
-        alertStore.put(id, alert);
-    }
+    @Deprecated
+    private void addAlert(String level, String message, String source) { /* replaced by buildRealAlerts() */ }
 
     // ─── [3] Job Run History ──────────────────────────────────────────────────
 

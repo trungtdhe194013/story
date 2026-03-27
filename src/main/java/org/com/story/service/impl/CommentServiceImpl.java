@@ -136,8 +136,15 @@ public class CommentServiceImpl implements CommentService {
 
         boolean isOwner = comment.getUser().getId().equals(currentUser.getId());
         boolean isAdmin = currentUser.getRoles().stream().anyMatch(r -> r.getName().equals("ADMIN"));
+        Long authorId = null;
+        if (comment.getStory() != null) {
+            authorId = comment.getStory().getAuthor().getId();
+        } else if (comment.getChapter() != null) {
+            authorId = comment.getChapter().getStory().getAuthor().getId();
+        }
+        boolean isAuthor = authorId != null && authorId.equals(currentUser.getId());
 
-        if (!isOwner && !isAdmin) {
+        if (!isOwner && !isAdmin && !isAuthor) {
             throw new UnauthorizedException("You don't have permission to delete this comment");
         }
         commentRepository.delete(comment);

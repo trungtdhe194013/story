@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Include Spring Boot default patterns (colors, log levels, etc.) -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- ===================================================
+         CONSOLE — override date pattern to show Vietnam time (UTC+7)
+         %d{..., Asia/Ho_Chi_Minh} forces timezone regardless of JVM/Docker setting
+         =================================================== -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, Asia/Ho_Chi_Minh} %clr(${LOG_LEVEL_PATTERN:-%5p}) ${PID:- } --- [%15.15t] %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ===================================================
+         IN-MEMORY APPENDER — feeds Admin Dashboard logs
+         Timestamp is also converted to Asia/Ho_Chi_Minh inside AppLogAppender.java
+         =================================================== -->
+    <appender name="IN_MEMORY" class="org.com.story.config.AppLogAppender"/>
+
+    <!-- Application package: INFO and above to console + in-memory -->
+    <logger name="org.com.story" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="IN_MEMORY"/>
+    </logger>
+
+    <!-- Spring Security: only WARN to avoid flooding -->
+    <logger name="org.springframework.security" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="IN_MEMORY"/>
+    </logger>
+
+    <!-- Hibernate SQL: console only (too noisy for in-memory) -->
+    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    <logger name="org.hibernate.type.descriptor.sql" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- Root: WARN and above -->
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="IN_MEMORY"/>
+    </root>
+
+</configuration>
+

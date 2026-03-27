@@ -22,5 +22,9 @@ public interface WithdrawRequestRepository extends JpaRepository<WithdrawRequest
 
     @Query("SELECT COALESCE(SUM(w.amount), 0) FROM WithdrawRequest w WHERE w.status = 'APPROVED' AND w.processedAt BETWEEN :from AND :to")
     Long sumApprovedAmountByDateRange(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /** Count PENDING withdraw requests created before the given cutoff (i.e., pending longer than N hours) */
+    @Query("SELECT COUNT(w) FROM WithdrawRequest w WHERE w.status = 'PENDING' AND w.createdAt < :cutoff")
+    long countPendingOlderThan(@Param("cutoff") LocalDateTime cutoff);
 }
 

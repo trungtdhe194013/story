@@ -44,6 +44,9 @@ services:
       # OAuth2 Google
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-your-google-client-id}
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-your-google-client-secret}
+      # ⏰ Timezone — Bắt buộc để schedule chapter đúng giờ Việt Nam (UTC+7)
+      TZ: Asia/Ho_Chi_Minh
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh"
     volumes:
       # ✅ Persist ảnh upload — không bị mất khi restart container
       - uploads_data:/app/uploads

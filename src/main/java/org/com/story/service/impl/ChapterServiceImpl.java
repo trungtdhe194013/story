@@ -233,6 +233,11 @@ public class ChapterServiceImpl implements ChapterService {
             throw new BadRequestException("Chapter phải được Reviewer APPROVE trước khi hẹn lịch. Hiện tại: " + chapter.getStatus());
         }
 
+        // Kiểm tra thời gian phải trong tương lai (so với giờ server — Asia/Ho_Chi_Minh)
+        if (request.getPublishAt().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("publishAt phải là thời gian trong tương lai (giờ Việt Nam UTC+7). Nhận được: " + request.getPublishAt());
+        }
+
         chapter.setStatus("SCHEDULED");
         chapter.setPublishAt(request.getPublishAt());
         Chapter updated = chapterRepository.save(chapter);
