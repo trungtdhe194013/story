@@ -36,9 +36,14 @@ public class StoryController {
     // Public - Get all published stories
     @GetMapping
     @Operation(summary = "Get all published stories",
-            description = "Danh sách truyện đã được duyệt, chưa bị xóa mềm, và có ít nhất 1 chương đã xuất bản")
-    public List<StoryResponse> getAllStories() {
-        return storyService.getAllPublishedStories();
+            description = "Danh sách truyện đã được duyệt, phân trang và có hỗ trợ filter. Tham số: size, page, sort, categories (tên thể loại), status (ONGOING, COMPLETED), keyword, year.")
+    public org.springframework.data.domain.Page<StoryResponse> getAllStories(
+            @RequestParam(required = false) List<String> categories,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer year,
+            org.springframework.data.domain.Pageable pageable) {
+        return storyService.getAllPublishedStories(categories, status, keyword, year, pageable);
     }
 
     // Public - Search stories

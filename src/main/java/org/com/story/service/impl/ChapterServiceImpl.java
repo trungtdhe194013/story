@@ -99,9 +99,10 @@ public class ChapterServiceImpl implements ChapterService {
             // Track mission READ_CHAPTER
             try { missionService.trackMissionAction("READ_CHAPTER"); } catch (Exception ignored) {}
 
-            // Tăng viewCount
+            // Tăng viewCount cho Chapter và cho toàn bộ Truyện (Story)
             chapter.setViewCount((chapter.getViewCount() != null ? chapter.getViewCount() : 0) + 1);
             chapterRepository.save(chapter);
+            try { storyRepository.incrementViewCount(story.getId()); } catch (Exception ignored) {}
         }
 
         List<CommentResponse> comments = commentService.getCommentsByChapter(id);

@@ -8,8 +8,13 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 @Repository
-public interface StoryRepository extends JpaRepository<Story, Long> {
+public interface StoryRepository extends JpaRepository<Story, Long>, JpaSpecificationExecutor<Story> {
 
     List<Story> findByAuthorId(Long authorId);
 
@@ -30,6 +35,18 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
             "AND EXISTS (SELECT c FROM Chapter c WHERE c.story = s AND c.status = 'PUBLISHED') " +
             "ORDER BY s.createdAt DESC")
     List<Story> findAllPublished();
+
+    Page<Story> findAllPublishedWithFilters(
+            @Param("categories") List<String> categories,
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            @Param("year") Integer year,
+            Pageable pageable
+    );
+
+    @Modifying
+    @Query("UPDATE Story s SET s.viewCount = COALESCE(s.viewCount, 0) + 1 WHERE s.id = :storyId")
+    void incrementViewCount(@Param("storyId") Long storyId);
 
     /**
      * Tìm kiếm: tương tự trang chủ nhưng có keyword filter.
