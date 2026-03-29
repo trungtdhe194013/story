@@ -4,6 +4,8 @@ import org.com.story.dto.request.StoryRequest;
 import org.com.story.dto.response.ChapterStatsResponse;
 import org.com.story.dto.response.StoryDetailResponse;
 import org.com.story.dto.response.StoryResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -14,7 +16,7 @@ public interface StoryService {
 
     StoryDetailResponse getStoryDetail(Long id);
 
-    List<StoryResponse> getAllPublishedStories();
+    Page<StoryResponse> getAllPublishedStories(List<String> categories, String status, String keyword, Integer year, Pageable pageable);
 
     List<StoryResponse> getMyStories();
 

@@ -15,6 +15,10 @@ import org.com.story.repository.StoryRepository;
 import org.com.story.repository.UserRepository;
 import org.com.story.service.StoryService;
 import org.com.story.service.UserService;
+import org.com.story.repository.spec.StorySpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -176,10 +180,23 @@ public class StoryServiceImpl implements StoryService {
     }
 
     @Override
-    public List<StoryResponse> getAllPublishedStories() {
-        // APPROVED + isDeleted=false + ít nhất 1 chapter PUBLISHED
-        return storyRepository.findAllPublished().stream()
-                .map(this::mapToResponse).collect(Collectors.toList());
+    public Page<StoryResponse> getAllPublishedStories(List<String> categories, String status, String keyword, Integer year, Pageable pageable) {
+        Specification<Story> spec = Specification.where(StorySpecification.isPublishedAndNotDeleted());
+
+        if (categories != null && !categories.isEmpty()) {
+            spec = spec.and(StorySpecification.hasCategories(categories));
+        }
+        if (status != null && !status.trim().isEmpty()) {
+            spec = spec.and(StorySpecification.hasStatus(status));
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            spec = spec.and(StorySpecification.hasKeyword(keyword));
+        }
+        if (year != null) {
+            spec = spec.and(StorySpecification.updatedInYear(year));
+        }
+
+        return storyRepository.findAll(spec, pageable).map(this::mapToResponse);
     }
 
     @Override
@@ -278,7 +295,9 @@ public class StoryServiceImpl implements StoryService {
     // ─────────────────────────────────────────────
     @Override
     public List<StoryResponse> searchStories(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) return getAllPublishedStories();
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAllPublishedStories(null, null, null, null, Pageable.unpaged()).getContent();
+        }
         return storyRepository.searchPublished(keyword).stream()
                 .map(this::mapToResponse).collect(Collectors.toList());
     }
