@@ -27,11 +27,20 @@ public interface ChapterPurchaseRepository extends JpaRepository<ChapterPurchase
     Long sumTotalSystemCommission();
 
     /**
-     * Lấy danh sách người dùng KHÁC NHAU đã mua bất kỳ chương nào của một story.
+     * Lấy tất cả người dùng KHÁC NHAU đã mua bất kỳ chương nào của một story.
      * Dùng để gửi thông báo khi story bị ẩn/gỡ bỏ.
      */
     @Query("SELECT DISTINCT cp.user FROM ChapterPurchase cp " +
            "JOIN cp.chapter c WHERE c.story.id = :storyId")
     List<User> findDistinctBuyersByStoryId(@Param("storyId") Long storyId);
+
+    /**
+     * Lấy tất cả chapter IDs của một story mà user đã mua.
+     * Dùng để kiểm tra user có thể xem chương HIDDEN hay không.
+     */
+    @Query("SELECT cp.chapter.id FROM ChapterPurchase cp " +
+           "JOIN cp.chapter c WHERE c.story.id = :storyId AND cp.user.id = :userId")
+    List<Long> findPurchasedChapterIdsByUserIdAndStoryId(@Param("userId") Long userId,
+                                                          @Param("storyId") Long storyId);
 }
 

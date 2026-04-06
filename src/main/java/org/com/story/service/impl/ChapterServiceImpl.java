@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -132,9 +134,36 @@ public class ChapterServiceImpl implements ChapterService {
 
         List<Chapter> chapters;
         if (isAuthor) {
+            // Tác giả thấy TẤT CẢ chapter (mọi status)
             chapters = chapterRepository.findByStoryIdOrderByChapterOrderAsc(storyId);
         } else {
-            chapters = chapterRepository.findPublishedByStoryId(storyId);
+            // Lấy tất cả chapter rồi lọc theo quyền
+            List<Chapter> allChapters = chapterRepository.findByStoryIdOrderByChapterOrderAsc(storyId);
+
+            // Lấy chapter IDs user đã mua trong story này (chỉ khi đã đăng nhập)
+            final Set<Long> purchasedIds = new HashSet<>();
+            if (currentUser != null) {
+                purchasedIds.addAll(
+                    chapterPurchaseRepository.findPurchasedChapterIdsByUserIdAndStoryId(
+                            currentUser.getId(), storyId)
+                );
+            }
+
+            chapters = allChapters.stream()
+                    .filter(ch -> {
+                        String status = ch.getStatus();
+                        if ("PUBLISHED".equals(status)) {
+                            // PUBLISHED: hiển thị cho tất cả
+                            return true;
+                        }
+                        if ("HIDDEN".equals(status)) {
+                            // HIDDEN: chỉ user đã mua chapter đó mới thấy
+                            return purchasedIds.contains(ch.getId());
+                        }
+                        // DRAFT, PENDING, APPROVED, SCHEDULED, REJECTED, EDITED: chỉ tác giả
+                        return false;
+                    })
+                    .collect(Collectors.toList());
         }
 
         User finalCurrentUser = currentUser;
