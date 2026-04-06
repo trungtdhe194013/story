@@ -203,6 +203,22 @@ public class ChapterServiceImpl implements ChapterService {
             throw new UnauthorizedException("You don't have permission to delete this chapter");
         }
 
+        // ── Xử lý edit request đang active (nếu có) ─────────────────────────────
+        // Lý do: bảng edit_requests có FK chapter_id → chapters.
+        // Nếu không cancel trước, DB sẽ throw constraint violation khi xóa chapter.
+        List<String> activeStatuses = List.of("OPEN", "IN_PROGRESS", "SUBMITTED");
+        editRequestRepository.findByChapterIdAndStatusIn(chapter.getId(), activeStatuses)
+                .ifPresent(req -> {
+                    // Hoàn trả coin đã lock về ví tác giả (escrow unlock)
+                    try {
+                        walletService.refundCoinsToAuthor(currentUser.getId(), req.getCoinReward(), req.getId());
+                    } catch (Exception ignored) {
+                        // Nếu hoàn coin thất bại vẫn cho xóa (edge case: coin đã bị xử lý)
+                    }
+                    req.setStatus("CANCELLED");
+                    editRequestRepository.save(req);
+                });
+
         chapterRepository.delete(chapter);
     }
 
