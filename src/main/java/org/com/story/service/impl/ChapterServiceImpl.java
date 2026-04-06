@@ -36,6 +36,10 @@ public class ChapterServiceImpl implements ChapterService {
     @Lazy private final ReadingHistoryService readingHistoryService;
     private final WalletService walletService;
     @Lazy private final MissionService missionService;
+    private final EditRequestRepository editRequestRepository;
+
+    /** Statuses của edit request mà editor được phép đọc nội dung chapter gốc */
+    private static final List<String> EDITOR_CAN_VIEW_STATUSES = List.of("IN_PROGRESS", "SUBMITTED");
 
     /** Tỉ lệ hoa hồng hệ thống thu — default 20% */
     @Value("${app.commission.rate:0.20}")
@@ -80,11 +84,18 @@ public class ChapterServiceImpl implements ChapterService {
         boolean isPurchased = currentUser != null &&
                 chapterPurchaseRepository.existsByUserIdAndChapterId(currentUser.getId(), chapter.getId());
 
-        if (!isAuthor && !isPublished) {
+        // ✅ Editor được gán (IN_PROGRESS / SUBMITTED) được phép đọc nội dung chapter gốc để chỉnh sửa
+        boolean isAssignedEditor = currentUser != null &&
+                editRequestRepository.existsByChapterIdAndEditorIdAndStatusIn(
+                        chapter.getId(), currentUser.getId(), EDITOR_CAN_VIEW_STATUSES);
+
+        // Chặn truy cập chapter chưa publish — trừ tác giả và editor đang được gán
+        if (!isAuthor && !isAssignedEditor && !isPublished) {
             throw new UnauthorizedException("Chapter is not published yet");
         }
 
-        if (!isAuthor && !isFree && !isPurchased) {
+        // Chapter có phí và chưa mua — trừ tác giả và editor đang được gán
+        if (!isAuthor && !isAssignedEditor && !isFree && !isPurchased) {
             ChapterResponse response = mapToResponse(chapter, currentUser, Collections.emptyList());
             response.setContent("[Locked] Purchase this chapter to read");
             return response;

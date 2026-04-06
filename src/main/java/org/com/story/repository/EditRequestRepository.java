@@ -18,5 +18,13 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, Long> 
 
     /** Kiểm tra chapter đã có request đang active chưa (OPEN / IN_PROGRESS / SUBMITTED) */
     Optional<EditRequest> findByChapterIdAndStatusIn(Long chapterId, List<String> statuses);
+
+    /**
+     * Kiểm tra user có phải editor đang được gán cho chapter này không
+     * (dùng để cấp quyền đọc nội dung chapter gốc khi preview)
+     */
+    boolean existsByChapterIdAndEditorIdAndStatusIn(Long chapterId, Long editorId, List<String> statuses);
 }
+
+
 
