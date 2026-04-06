@@ -102,7 +102,11 @@ public class UserController {
         );
 
         // 5. Tạo URL public truy cập ảnh
-        String avatarUrl = baseUrl + "/uploads/avatars/" + filename;
+        // Nếu dùng ngrok free tier, thêm query param để skip browser warning (img tag không gửi được header)
+        String avatarPath = "/uploads/avatars/" + filename;
+        String avatarUrl = baseUrl.contains("ngrok")
+                ? baseUrl + avatarPath + "?ngrok-skip-browser-warning=true"
+                : baseUrl + avatarPath;
 
         // 6. Trả về { "avatarUrl": "..." } — GlobalResponseWrapper sẽ bọc thêm tầng data bên ngoài
         return ResponseEntity.ok(java.util.Map.of("avatarUrl", avatarUrl));

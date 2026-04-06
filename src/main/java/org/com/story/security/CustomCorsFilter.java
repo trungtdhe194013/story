@@ -8,8 +8,23 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * ⚠️ Filter này đã bị vô hiệu hóa (shouldNotFilter luôn trả về true).
+ *
+ * Lý do: CORS đã được cấu hình đầy đủ trong SecurityConfig.corsConfigurationSource()
+ * và WebConfig.addCorsMappings(). Filter này hard-code "localhost:3000" gây xung đột
+ * khi deploy qua ngrok hoặc domain khác.
+ *
+ * Nếu cần CORS đặc biệt, hãy sửa SecurityConfig.corsConfigurationSource() thay vì filter này.
+ */
 @Component
-public class CustomCorsFilter  extends OncePerRequestFilter {
+public class CustomCorsFilter extends OncePerRequestFilter {
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        // Vô hiệu hóa hoàn toàn — CORS đã xử lý ở SecurityConfig
+        return true;
+    }
 
     @Override
     protected void doFilterInternal(
@@ -17,17 +32,6 @@ public class CustomCorsFilter  extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-
-        response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
-        response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Authorization,Content-Type");
-        response.setHeader("Access-Control-Allow-Credentials", "true");
-
-        // ⚠️ Bắt buộc xử lý preflight
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            response.setStatus(HttpServletResponse.SC_OK);
-            return;
-        }
 
         filterChain.doFilter(request, response);
     }

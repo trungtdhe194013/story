@@ -32,11 +32,9 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
     @Query("SELECT COUNT(p) FROM PaymentOrder p WHERE p.createdAt >= :since")
     long countAllSince(@Param("since") LocalDateTime since);
 
-    /** Revenue VND from PAID orders in last N days */
+    /** Revenue VND from PAID orders since a given time */
     @Query("SELECT COALESCE(SUM(p.amountVnd), 0) FROM PaymentOrder p WHERE p.status = 'PAID' AND p.createdAt >= :since")
     Long sumRevenueVndSince(@Param("since") LocalDateTime since);
-
-    /** Count distinct users who made a PAID order since a date — for activity metrics */
-    @Query("SELECT COUNT(DISTINCT p.user.id) FROM PaymentOrder p WHERE p.status = 'PAID' AND p.createdAt >= :since")
-    long countDistinctPayingUsersSince(@Param("since") LocalDateTime since);
 }
+
+

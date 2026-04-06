@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SystemStatsResponse {
-    /** DAU / MAU ratio (0.0 - 1.0). Source: ReadingHistory.lastReadAt */
+    /** DAU/MAU ratio (0.0 - 1.0) */
     private double dauMauRatio;
 
     /** DAU: distinct readers today */
@@ -19,7 +19,7 @@ public class SystemStatsResponse {
     /** MAU: distinct readers in last 30 days */
     private long mau;
 
-    /** Doanh thu 7 ngay qua (VND). Source: PaymentOrder PAID */
+    /** Doanh thu 7 ngay gan nhat (VND) */
     private long revenue7d;
 
     /** Tong doanh thu tu truoc den nay (VND). Source: PaymentOrder PAID */

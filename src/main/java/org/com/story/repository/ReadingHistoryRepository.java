@@ -15,7 +15,11 @@ public interface ReadingHistoryRepository extends JpaRepository<ReadingHistory, 
     Optional<ReadingHistory> findByUserIdAndStoryId(Long userId, Long storyId);
     List<ReadingHistory> findByUserIdOrderByLastReadAtDesc(Long userId);
 
-    /** DAU: distinct users who read anything since a given time */
-    @Query("SELECT COUNT(DISTINCT r.user.id) FROM ReadingHistory r WHERE r.lastReadAt >= :since")
-    long countDistinctActiveUsersSince(@Param("since") LocalDateTime since);
+    /** Đếm số user KHÁC NHAU đã đọc ít nhất 1 chương kể từ mốc thời gian — dùng cho DAU/MAU */
+    @Query("SELECT COUNT(DISTINCT rh.user.id) FROM ReadingHistory rh WHERE rh.lastReadAt >= :since")
+    long countDistinctUsersReadingSince(@Param("since") LocalDateTime since);
 }
+
+
+
+

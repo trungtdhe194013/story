@@ -96,7 +96,12 @@ public class UploadController {
         Files.copy(file.getInputStream(), uploadDir.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
 
         // 7. Trả về URL
-        String url = baseUrl + "/uploads/" + subDir + "/" + filename;
+        // Nếu dùng ngrok free tier, phải thêm query param để skip browser warning page
+        // Vì <img> tag không gửi được request header, chỉ query param mới work
+        String path = "/uploads/" + subDir + "/" + filename;
+        String url = baseUrl.contains("ngrok")
+                ? baseUrl + path + "?ngrok-skip-browser-warning=true"
+                : baseUrl + path;
         return ResponseEntity.ok(Map.of("url", url));
     }
 }

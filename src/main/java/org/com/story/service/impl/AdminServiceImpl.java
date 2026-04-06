@@ -41,7 +41,6 @@ import org.com.story.repository.ReportRepository;
 import org.com.story.repository.WalletRepository;
 import org.com.story.repository.WalletTransactionRepository;
 import org.com.story.repository.WithdrawRequestRepository;
-import org.com.story.repository.ReadingHistoryRepository;
 import org.com.story.service.AdminService;
 import org.com.story.service.NotificationService;
 import org.com.story.service.UserService;
@@ -86,7 +85,7 @@ public class AdminServiceImpl implements AdminService {
     private final ChapterPurchaseRepository chapterPurchaseRepository;
     private final PaymentOrderRepository paymentOrderRepository;
     private final AppLogStore appLogStore;
-    private final ReadingHistoryRepository readingHistoryRepository;
+    private final org.com.story.repository.ReadingHistoryRepository readingHistoryRepository;
 
     @Value("${app.commission.rate:0.20}")
     private double commissionRate;
@@ -529,33 +528,31 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public SystemStatsResponse getSystemStats() {
-        LocalDateTime now      = LocalDateTime.now();
-        LocalDateTime since7d  = now.minusDays(7);
-        LocalDateTime since30d = now.minusDays(30);
-        LocalDateTime todayStart = now.toLocalDate().atStartOfDay();
+        LocalDateTime now     = LocalDateTime.now();
+        LocalDateTime since7d = now.minusDays(7);
+        LocalDateTime todayStart  = LocalDate.now().atStartOfDay();
+        LocalDateTime since30d    = now.minusDays(30);
 
-        // ── Revenue ─────────────────────────────────────────────────────────────
-        long revenue7d      = paymentOrderRepository.sumRevenueVndSince(since7d);
+        // ── Users ─────────────────────────────────────────────────────────────────
+        long totalUsers = userRepository.count();
+        long newUsers7d = userRepository.countByCreatedAtAfter(since7d);
+
+        // ── DAU / MAU (distinct readers) ──────────────────────────────────────────
+        long dau = readingHistoryRepository.countDistinctUsersReadingSince(todayStart);
+        long mau = readingHistoryRepository.countDistinctUsersReadingSince(since30d);
+        double dauMauRatio = mau > 0 ? Math.min(1.0, (double) dau / mau) : 0.0;
+
+        // ── Revenue ───────────────────────────────────────────────────────────────
         long revenueAllTime = paymentOrderRepository.sumRevenueVnd();
+        long revenue7d      = paymentOrderRepository.sumRevenueVndSince(since7d);
 
-        // ── Payment error rate (last 7 days) ────────────────────────────────────
+        // ── Payment error rate (last 7 days) ──────────────────────────────────────
         long paidOrders7d      = paymentOrderRepository.countByStatusSince("PAID",      since7d);
         long cancelledOrders7d = paymentOrderRepository.countByStatusSince("CANCELLED", since7d);
-        long totalOrders7d     = paidOrders7d + cancelledOrders7d;
+        long totalOrders7d     = paymentOrderRepository.countAllSince(since7d);
         double paymentErrorRate = totalOrders7d > 0
                 ? (double) cancelledOrders7d / totalOrders7d
                 : 0.0;
-
-        // ── DAU / MAU (based on ReadingHistory.lastReadAt) ──────────────────────
-        long dau = readingHistoryRepository.countDistinctActiveUsersSince(todayStart);
-        long mau = readingHistoryRepository.countDistinctActiveUsersSince(since30d);
-        double dauMauRatio = mau > 0 ? (double) dau / mau : 0.0;
-
-        // ── Users ────────────────────────────────────────────────────────────────
-        long totalUsers = userRepository.count();
-        // newUsers7d: users whose id were created in last 7 days
-        // (User entity createdAt via @CreationTimestamp)
-        long newUsers7d = userRepository.countByCreatedAtAfter(since7d);
 
         return SystemStatsResponse.builder()
                 .dauMauRatio(dauMauRatio)
@@ -577,17 +574,16 @@ public class AdminServiceImpl implements AdminService {
     public Page<SystemLogResponse> getSystemLogs(String severity, String component, int page, int size) {
         List<SystemLogResponse> allLogs = appLogStore.getAll(); // real logs from AppLogAppender
 
-        // Filter by severity
+        // Filter by severity and component
         List<SystemLogResponse> filtered = allLogs.stream()
                 .filter(l -> severity == null || severity.isBlank()
                         || l.getSeverity().equalsIgnoreCase(severity))
-                // Filter by component (partial match, case-insensitive)
                 .filter(l -> component == null || component.isBlank()
                         || l.getComponent().toLowerCase().contains(component.toLowerCase()))
                 .collect(Collectors.toList());
 
         // Manual pagination
-        int total     = filtered.size();
+        int total = filtered.size();
         int fromIndex = Math.min(page * size, total);
         int toIndex   = Math.min(fromIndex + size, total);
         List<SystemLogResponse> pageContent = filtered.subList(fromIndex, toIndex);
@@ -600,7 +596,8 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public List<SystemAlertResponse> getSystemAlerts() {
         List<SystemAlertResponse> alerts = buildRealAlerts();
-        // Merge acknowledged state from in-memory store (persists until restart)
+
+        // Merge acknowledged state from in-memory store
         for (SystemAlertResponse alert : alerts) {
             SystemAlertResponse stored = alertStore.get(alert.getId());
             if (stored != null && Boolean.TRUE.equals(stored.getIsAcknowledged())) {
